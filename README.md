@@ -27,7 +27,7 @@ CityFluxy/
 
 **Tech Stack:** Next.js 16, React 19, TypeScript, TailwindCSS v4, Three.js (via `@react-three/fiber` + `@react-three/drei`), Framer Motion, GSAP, Lucide React
 
-The front-end is a visually immersive, futuristic dark-mode web app with neon-cyan/purple aesthetics, glassmorphism panels, and cinematic scroll transitions. It is internally named **"VisionPlate"**.
+The front-end is a visually immersive, futuristic dark-mode web app with neon-cyan/purple aesthetics, glassmorphism panels, and cinematic scroll transitions. It is internally named **"CityFluxy"**.
 
 ### Pages
 
