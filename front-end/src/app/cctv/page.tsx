@@ -6,10 +6,11 @@ import Navbar from "@/components/UI/Navbar";
 import AuthSection from "@/components/UI/AuthSection";
 import ProfileModal from "@/components/UI/ProfileModal";
 import { Loader2, Camera, ShieldAlert, Wifi, Activity, CheckCircle, XCircle } from "lucide-react";
+import { site } from "@/config/site";
 
 type User = { name: string; email: string; role?: string; token?: string };
 
-const STREAM_URL = "http://127.0.0.1:8000/video";
+const STREAM_URL = site.api.videoStream ?? "";
 
 export default function CCTVPage() {
     const [user, setUser] = useState<User | null>(null);
@@ -87,7 +88,7 @@ export default function CCTVPage() {
                             <div>
                                 <h1 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
                                     <Camera className="text-neon-cyan animate-pulse" />
-                                    Live Tactical Feed <span className="text-neon-cyan text-sm font-mono tracking-widest">[SECTOR-07]</span>
+                                    Live Tactical Feed <span className="text-neon-cyan text-sm font-mono tracking-widest">[{site.labels.sector}]</span>
                                 </h1>
                                 <p className="text-slate-500 text-[10px] uppercase tracking-[0.3em] font-bold mt-1">
                                     Helmet Violation Detection // YOLO Neural Engine Active

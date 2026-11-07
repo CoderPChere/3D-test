@@ -10,6 +10,7 @@ import CursorGlow from "@/components/UI/CursorGlow";
 import AuthSection from "@/components/UI/AuthSection";
 import Navbar from "@/components/UI/Navbar";
 import ProfileModal from "@/components/UI/ProfileModal";
+import { site } from "@/config/site";
 
 type User = { name: string; email: string; role?: string; token?: string };
 
@@ -74,14 +75,14 @@ export default function Home() {
       <section className="relative h-screen flex items-center justify-center pointer-events-none">
         <div className="max-w-4xl px-12 text-center pointer-events-auto">
           <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter hologram-text mb-4 mt-16">
-            CITYFLUXY
+            {site.name.toUpperCase()}
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto uppercase tracking-[0.2em] font-light">
-            Next-Gen Autonomous City Surveillance & Neural Traffic Intelligence
+            {site.tagline}
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <div className="w-12 h-[1px] bg-neon-cyan/50 self-center" />
-            <span className="text-xs text-neon-cyan tracking-widest font-mono">INITIATING SECTOR SCAN</span>
+            <span className="text-xs text-neon-cyan tracking-widest font-mono">INITIATING {site.labels.sector} SCAN</span>
             <div className="w-12 h-[1px] bg-neon-cyan/50 self-center" />
           </div>
         </div>
@@ -120,7 +121,7 @@ export default function Home() {
           <div className="flex justify-between items-center mb-12">
             <div>
               <h2 className="text-4xl font-bold text-white mb-2 uppercase tracking-tight">Investigation Dashboard</h2>
-              <p className="text-slate-500 font-mono text-sm">SECURE TERMINAL // SECTOR-07 ACCESS</p>
+              <p className="text-slate-500 font-mono text-sm">{site.labels.terminal}</p>
             </div>
             <button className="neon-border px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-neon-cyan hover:text-black transition-all">
               Download Incident Reports
@@ -134,8 +135,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative py-12 px-24 border-t border-white/5 flex justify-between items-center bg-black/50 backdrop-blur-xl">
         <div className="flex flex-col gap-1">
-          <span className="text-xl font-bold hologram-text">CITYFLUXY</span>
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest">© 2026 NEXUS SYSTEMS CORP</p>
+          <span className="text-xl font-bold hologram-text">{site.name.toUpperCase()}</span>
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest">{site.labels.footer}</p>
         </div>
         <div className="flex gap-8">
           {["Sectors", "Protocols", "Authentication", "API"].map(item => (

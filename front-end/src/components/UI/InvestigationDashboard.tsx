@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, FileText, Filter, MoreHorizontal, AlertCircle, Camera, Loader2 } from "lucide-react";
+import { site } from "@/config/site";
 
 const DATA = [
     { id: "V-9842", plate: "GJ 01 BV 4220", type: "SUV", status: "CLEARED", confidence: "98.4%", time: "12:42:01" },
@@ -112,7 +113,7 @@ export default function InvestigationDashboard({ user }: InvestigationDashboardP
                         <h4 className="text-lg font-bold text-white uppercase tracking-tight">System Alert</h4>
                     </div>
                     <p className="text-sm text-slate-400 mb-4 font-light">
-                        Vehicle GJ 01 BV 4220 has been flagged for lane violation in SECTOR-07. Automated citation pending officer review.
+                        Vehicle GJ 01 BV 4220 has been flagged for lane violation in {site.labels.sector}. Automated citation pending officer review.
                     </p>
                     <button className="text-xs font-bold uppercase tracking-widest text-red-500 border-b border-red-500/30 hover:border-red-500 transition-all pb-1">
                         Review Incident Footage

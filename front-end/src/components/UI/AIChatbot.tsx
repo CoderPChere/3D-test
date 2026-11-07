@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { site } from "@/config/site";
 
 type Message = {
     id: string;
@@ -15,7 +16,7 @@ export default function AIChatbot() {
         {
             id: "system-init",
             sender: "ai",
-            text: "NEURAL LINK ESTABLISHED. I am the CityFluxy AI Intelligence. How can I assist you with traffic predictions today?",
+            text: site.chatbot.welcome,
             timestamp: new Date()
         }
     ]);
@@ -45,19 +46,30 @@ export default function AIChatbot() {
 
         setMessages((prev) => [...prev, userMsg]);
         setInputValue("");
+
+        if (!site.api.chatbot) {
+            setMessages((prev) => [...prev, {
+                id: (Date.now() + 1).toString(),
+                sender: "ai",
+                text: "Chatbot not configured — set api.chatbot in src/config/site.ts",
+                timestamp: new Date()
+            }]);
+            return;
+        }
+
         setIsTyping(true);
 
         try {
-            // Attempt to contact local Ollama instance
+            // Attempt to contact configured Ollama instance
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
-            const response = await fetch("your_ngrok_link/api/generate", {
+            const response = await fetch(`${site.api.chatbot}/api/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    model: "llama3.2:3b", // Updated to the user-specified model
-                    prompt: `You are a highly advanced futuristic AI traffic intelligence system called CityFluxy AI. Respond to the user's inquiry concisely and professionally. Ensure answers have a cybernetic or analytical tone. User query: ${userMsg.text}`,
+                    model: "llama3.2:3b",
+                    prompt: `${site.chatbot.systemPrompt} User query: ${userMsg.text}`,
                     stream: false
                 }),
                 signal: controller.signal
@@ -84,7 +96,7 @@ export default function AIChatbot() {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 sender: "ai",
-                text: "ERROR: Connection to Ollama instance (wilhelmina-thrawn-spindly.ngrok-free.dev) refused. Please ensure the model and tunnel are running.",
+                text: "ERROR: Connection to Neural Net refused. Please ensure the model and tunnel are running.",
                 timestamp: new Date()
             };
             setMessages((prev) => [...prev, errorMessage]);
@@ -138,7 +150,7 @@ export default function AIChatbot() {
                             >
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className={`text-[10px] uppercase font-bold tracking-widest ${msg.sender === "user" ? "text-neon-blue" : "text-neon-cyan"}`}>
-                                        {msg.sender === "user" ? "Operative" : "CityFluxy AI"}
+                                        {msg.sender === "user" ? "Operative" : site.chatbot.name}
                                     </span>
                                     <span className="text-[9px] text-slate-500 font-mono">
                                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}

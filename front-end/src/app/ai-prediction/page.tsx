@@ -8,6 +8,7 @@ import AuthSection from "@/components/UI/AuthSection";
 import ProfileModal from "@/components/UI/ProfileModal";
 
 import AnimatedTrafficSignal from "@/components/UI/AnimatedTrafficSignal";
+import { site } from "@/config/site";
 
 type User = { name: string; email: string; role?: string; token?: string };
 
@@ -77,7 +78,7 @@ export default function AIPredictionPage() {
                         </div>
                         <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">Access Denied</h2>
                         <p className="text-slate-400 font-mono text-sm leading-relaxed mb-8">
-                            This sector is restricted to authorized CityFluxy Operatives only. Please authenticate your credentials to access neural traffic predictions.
+                            This sector is restricted to authorized {site.name} Operatives only. Please authenticate your credentials to access neural traffic predictions.
                         </p>
                         <button 
                             onClick={() => setIsAuthOpen(true)}

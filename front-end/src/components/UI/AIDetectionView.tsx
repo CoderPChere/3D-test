@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Search, Loader2, CheckCircle, Database } from "lucide-react";
+import { site } from "@/config/site";
 
 const STAGES = [
     { id: "analyze", label: "ANALYZING BINARY DATA", speed: 1.5 },
@@ -56,7 +57,7 @@ export default function AIDetectionView() {
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="w-48 h-24 border-2 border-dashed border-neon-cyan/50 rounded-lg flex items-center justify-center">
                             <span className="text-[10px] text-neon-cyan font-mono animate-pulse">
-                                TARGET_LOCATED: SECTOR_7
+                                TARGET_LOCATED: {site.labels.sector.replace("-", "_")}
                             </span>
                         </div>
                     </div>

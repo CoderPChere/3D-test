@@ -5,6 +5,7 @@ import { Box, Plane, Instances, Instance } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import TrafficSystem from "./TrafficSystem";
+import { site } from "@/config/site";
 
 // Global traffic light state for cars to read
 export const trafficState = { cycle: 0 }; // 0 to 100, where 0-40 is Green Horizontal, 50-90 is Green Vertical
@@ -416,12 +417,18 @@ function TrafficLightPole({ position, rotation, isHorizontal }: any) {
     }
     
 function RoadSigns() {
-    const signs = [
-        { pos: [-15, 0, -38], text: "SECTOR 07", color: "#0ea5e9" },
-        { pos: [15, 0, 38], text: "SPEED LIMIT: 60", color: "#ef4444" },
-        { pos: [38, 0, -15], text: "AI PATROL", color: "#8b5cf6" },
-        { pos: [-38, 0, 15], text: "NEURAL NET ACTIVE", color: "#22c55e" },
+    // Positions are scene layout, not branding — sign text/colors come from site config.
+    const positions = [
+        [-15, 0, -38],
+        [15, 0, 38],
+        [38, 0, -15],
+        [-38, 0, 15],
     ];
+    const signs = site.roadSigns.map((s, idx) => ({
+        pos: positions[idx] ?? [0, 0, 0],
+        text: s.text,
+        color: s.color,
+    }));
 
     return (
         <group>

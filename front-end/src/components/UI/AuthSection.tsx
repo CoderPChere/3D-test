@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { site } from "@/config/site";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = site.api.auth;
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -35,6 +36,10 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!API_BASE_URL) {
+            setError("Auth API not configured — set api.auth in src/config/site.ts");
+            return;
+        }
         setIsLoading(true);
         setError(null);
 
@@ -117,7 +122,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
 
                         <div className="relative z-10 text-center mb-10">
                             <h2 className="text-5xl font-bold text-white mb-4 uppercase tracking-tight">
-                                {isLogin ? "Neural Access" : "Network Register"}
+                                {isLogin ? site.labels.auth.login : site.labels.auth.signup}
                             </h2>
                             <p className="text-slate-400 font-mono text-xs tracking-widest uppercase">
                                 {isLogin ? "Authenticate to initiate sector-07 uplink" : "Create new operative identity"}
@@ -167,14 +172,14 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="operative@nexus.corp"
+                                            placeholder={site.labels.auth.emailPlaceholder}
                                             required
                                             className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] focus:outline-none transition-all font-mono placeholder:text-slate-600"
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-xs uppercase font-bold text-slate-300 tracking-widest ml-1">Uplink Cipher</label>
+                                        <label className="text-xs uppercase font-bold text-slate-300 tracking-widest ml-1">{site.labels.auth.passwordLabel}</label>
                                         <input
                                             type="password"
                                             value={password}
@@ -214,7 +219,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                             </span>
                                         ) : (
                                             <span className="group-hover:scale-105 inline-block transition-transform relative z-10">
-                                                {isLogin ? "Initiate Uplink" : "Authorize Creation"}
+                                                {isLogin ? site.labels.auth.loginCta : site.labels.auth.signupCta}
                                             </span>
                                         )}
                                     </button>
