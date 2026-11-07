@@ -22,6 +22,9 @@ export default function InvestigationDashboard({ user }: InvestigationDashboardP
         window.location.href = "/cctv";
     };
 
+    // Same rule as the Navbar's CCTV link: flag on, and browsable (auth off, or logged in)
+    const canAccessCctv = site.features.cctv && (!site.features.auth || !!user);
+
     return (
         <div className="w-full space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -32,7 +35,7 @@ export default function InvestigationDashboard({ user }: InvestigationDashboardP
                     <button className="glass px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
                         <FileText size={14} /> Export CSV
                     </button>
-                    {user && (
+                    {canAccessCctv && (
                         <button 
                             onClick={handleCCTVClick}
                             className="neon-border bg-neon-purple/10 px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neon-purple transition-all hover:bg-neon-purple/20"

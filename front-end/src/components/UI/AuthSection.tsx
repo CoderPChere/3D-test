@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { site } from "@/config/site";
 import { writeSession } from "@/lib/auth";
 
-const API_BASE_URL = site.api.auth;
+// Strip trailing slashes so pasted deploy URLs don't double up before the /api/v1/auth path
+const API_BASE_URL = site.api.auth?.replace(/\/+$/, "");
 
 interface AuthModalProps {
     isOpen: boolean;

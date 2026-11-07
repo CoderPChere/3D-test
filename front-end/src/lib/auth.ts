@@ -27,6 +27,7 @@ export function readSession(): Session | null {
 }
 
 export function writeSession(session: Session): void {
+  if (typeof window === "undefined") return;
   localStorage.setItem(KEYS.token, session.token);
   localStorage.setItem(KEYS.role, session.role);
   localStorage.setItem(KEYS.email, session.email);

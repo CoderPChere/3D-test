@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { site } from "@/config/site";
 
+// Strip trailing slashes so pasted URLs don't double up in the fetch path
+const CHATBOT_URL = site.api.chatbot?.replace(/\/+$/, "");
+
 type Message = {
     id: string;
     sender: "user" | "ai";
@@ -47,7 +50,7 @@ export default function AIChatbot() {
         setMessages((prev) => [...prev, userMsg]);
         setInputValue("");
 
-        if (!site.api.chatbot) {
+        if (!CHATBOT_URL) {
             setMessages((prev) => [...prev, {
                 id: (Date.now() + 1).toString(),
                 sender: "ai",
@@ -64,7 +67,7 @@ export default function AIChatbot() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
-            const response = await fetch(`${site.api.chatbot}/api/generate`, {
+            const response = await fetch(`${CHATBOT_URL}/api/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

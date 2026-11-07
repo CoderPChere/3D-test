@@ -20,6 +20,7 @@ export interface SiteConfig {
       emailPlaceholder: string;
     };
   };
+  /** Exactly 4 entries render at the designed scene positions; extra entries stack at the origin */
   roadSigns: Array<{ text: string; color: string }>;
   chatbot: { name: string; welcome: string; systemPrompt: string };
 }
