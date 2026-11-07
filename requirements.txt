@@ -1,0 +1,81 @@
+# ============================================================
+# CityFluxy — Full Project Dependencies
+# ============================================================
+#
+# PYTHON DEPENDENCIES
+#   Install with: pip install -r requirements.txt
+#
+# NODE.JS DEPENDENCIES (Front-End)
+#   Install with: cd front-end && npm install
+#
+# NODE.JS DEPENDENCIES (Back-End)
+#   Install with: cd back-end && npm install
+#
+# ============================================================
+
+
+# ============================================================
+# SECTION 1 — Python (AI/ML + CCTV Stream + Colab Tunnel)
+# ============================================================
+
+# --- Web Server (CCTV Stream) ---
+fastapi==0.115.12
+uvicorn==0.34.0
+
+# --- Computer Vision / YOLOv8 ---
+ultralytics==8.3.106
+opencv-python==4.11.0.86
+
+# --- Networking & Tunneling ---
+pyngrok==7.2.11
+requests==2.32.3
+
+# --- Utilities ---
+python-dotenv==1.1.0
+numpy==2.2.4
+pillow==11.1.0
+
+
+# ============================================================
+# SECTION 2 — Node.js Front-End (next.js / React / Three.js)
+# ============================================================
+# Run: cd front-end && npm install
+#
+# dependencies:
+#   @react-three/drei         ^10.7.7
+#   @react-three/fiber        ^9.5.0
+#   @types/three              ^0.183.1
+#   clsx                      ^2.1.1
+#   framer-motion             ^12.35.2
+#   gsap                      ^3.14.2
+#   lucide-react              ^0.577.0
+#   next                      16.1.6
+#   react                     19.2.3
+#   react-dom                 19.2.3
+#   tailwind-merge            ^3.5.0
+#   three                     ^0.183.2
+#
+# devDependencies:
+#   @tailwindcss/postcss      ^4
+#   @types/node               ^20
+#   @types/react              ^19
+#   @types/react-dom          ^19
+#   eslint                    ^9
+#   eslint-config-next        16.1.6
+#   tailwindcss               ^4
+#   typescript                ^5
+
+
+# ============================================================
+# SECTION 3 — Node.js Back-End (Express / Supabase / JWT)
+# ============================================================
+# Run: cd back-end && npm install
+#
+# dependencies:
+#   @supabase/supabase-js     ^2.99.1
+#   bcryptjs                  ^3.0.3
+#   cors                      ^2.8.6
+#   dotenv                    ^17.3.1
+#   express                   ^5.2.1
+#   jsonwebtoken              ^9.0.3
+
