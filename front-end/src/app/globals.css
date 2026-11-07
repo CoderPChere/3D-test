@@ -45,8 +45,8 @@ body {
 
 .hologram-text {
   color: var(--neon-cyan);
-  text-shadow: 0 0 8px rgba(34, 211, 238, 0.8),
-               0 0 20px rgba(34, 211, 238, 0.4);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-cyan) 80%, transparent),
+               0 0 20px color-mix(in srgb, var(--neon-cyan) 40%, transparent);
 }
 
 /* Custom Scrollbar */
@@ -70,3 +70,10 @@ body {
 canvas {
   touch-action: none;
 }
+
+/* brand glow utilities — color follows palette via --neon-* (set from site config in layout.tsx) */
+.glow-cyan-sm { box-shadow: 0 0 8px var(--neon-cyan); }
+.glow-cyan-md { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-cyan) 30%, transparent); }
+.glow-cyan-lg { box-shadow: 0 0 50px color-mix(in srgb, var(--neon-cyan) 10%, transparent); }
+.glow-purple-md { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-purple) 30%, transparent); }
+.glow-purple-lg { box-shadow: 0 0 40px color-mix(in srgb, var(--neon-purple) 15%, transparent); }
