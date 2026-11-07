@@ -15,19 +15,8 @@ yarn-error.log*
 out/
 build/
 
-# Python
-__pycache__/
-*.pyc
-venv/
-.venv/
-env/
-.ipynb_checkpoints/
-
 # Secrets
 .env
 .env.*
 !.env.example
 *.pem
-
-# YOLO
-runs/
