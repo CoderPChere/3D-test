@@ -101,7 +101,7 @@ export default function Home() {
               "Behavioral anomaly detection"
             ].map((item, i) => (
               <li key={i} className="flex items-center gap-2 text-xs text-neon-cyan font-mono">
-                <div className="w-2 h-2 bg-neon-cyan rounded-full shadow-[0_0_8px_#22d3ee]" />
+                <div className="w-2 h-2 bg-neon-cyan rounded-full glow-cyan-sm" />
                 {item.toUpperCase()}
               </li>
             ))}

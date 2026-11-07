@@ -185,7 +185,7 @@ export default function CCTVPage() {
                                     <span className="text-[8px] text-slate-500 uppercase tracking-widest">{stat.label}</span>
                                     <div className="flex justify-between items-center">
                                         <span className={`text-xs font-bold uppercase ${stat.live ? "text-neon-cyan" : "text-white"}`}>{stat.status}</span>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${stat.live ? "bg-neon-cyan shadow-[0_0_6px_#22d3ee] animate-pulse" : "bg-slate-600"}`} />
+                                        <div className={`w-1.5 h-1.5 rounded-full ${stat.live ? "bg-neon-cyan glow-cyan-sm animate-pulse" : "bg-slate-600"}`} />
                                     </div>
                                 </div>
                             ))}

@@ -49,7 +49,7 @@ export default function AIDetectionView() {
                         <motion.div
                             animate={{ top: ["0%", "100%"] }}
                             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            className="absolute left-0 right-0 h-1 bg-neon-cyan shadow-[0_0_15px_#22d3ee] z-10"
+                            className="absolute left-0 right-0 h-1 bg-neon-cyan glow-cyan-md z-10"
                         />
                     )}
 

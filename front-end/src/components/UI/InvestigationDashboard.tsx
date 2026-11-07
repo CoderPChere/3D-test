@@ -136,7 +136,7 @@ export default function InvestigationDashboard({ user }: InvestigationDashboardP
                                     <motion.div
                                         initial={{ width: 0 }}
                                         whileInView={{ width: `${item.val}%` }}
-                                        className="h-full bg-neon-cyan shadow-[0_0_10px_#22d3ee]"
+                                        className="h-full bg-neon-cyan glow-cyan-sm"
                                     />
                                 </div>
                             </div>

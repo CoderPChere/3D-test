@@ -108,7 +108,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="max-w-2xl w-full glass rounded-3xl p-16 border border-white/10 relative overflow-hidden shadow-[0_0_50px_rgba(34,211,238,0.1)]"
+                        className="max-w-2xl w-full glass rounded-3xl p-16 border border-white/10 relative overflow-hidden glow-cyan-lg"
                     >
                         <div className="absolute -top-24 -right-24 w-48 h-48 bg-neon-cyan/20 rounded-full blur-[80px]" />
                         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-neon-blue/20 rounded-full blur-[80px]" />
@@ -125,7 +125,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                 {isLogin ? site.labels.auth.login : site.labels.auth.signup}
                             </h2>
                             <p className="text-slate-400 font-mono text-xs tracking-widest uppercase">
-                                {isLogin ? "Authenticate to initiate sector-07 uplink" : "Create new operative identity"}
+                                {isLogin ? `Authenticate to initiate ${site.labels.sector} uplink` : "Create new operative identity"}
                             </p>
                         </div>
 
@@ -161,7 +161,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                                 onChange={(e) => setName(e.target.value)}
                                                 placeholder="John Doe"
                                                 required={!isLogin}
-                                                className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                                                className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:glow-cyan-md focus:outline-none transition-all font-mono placeholder:text-slate-600"
                                             />
                                         </div>
                                     )}
@@ -174,7 +174,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder={site.labels.auth.emailPlaceholder}
                                             required
-                                            className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                                            className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:glow-cyan-md focus:outline-none transition-all font-mono placeholder:text-slate-600"
                                         />
                                     </div>
 
@@ -186,7 +186,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="••••••••"
                                             required
-                                            className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                                            className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:glow-cyan-md focus:outline-none transition-all font-mono placeholder:text-slate-600"
                                         />
                                     </div>
 
@@ -197,9 +197,9 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                                 type="text"
                                                 value={organization}
                                                 onChange={(e) => setOrganization(e.target.value)}
-                                                placeholder="Traffic Dept. Sector 07"
+                                                placeholder={`Traffic Dept. ${site.labels.sector}`}
                                                 required={!isLogin}
-                                                className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                                                className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white focus:border-neon-cyan focus:glow-cyan-md focus:outline-none transition-all font-mono placeholder:text-slate-600"
                                             />
                                         </div>
                                     )}

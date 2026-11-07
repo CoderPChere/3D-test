@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { site } from "@/config/site";
 
 interface NavbarProps {
     user: { name: string; email: string } | null;
@@ -19,9 +20,9 @@ export default function Navbar({ user, onLoginClick, onProfileClick }: NavbarPro
             >
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-neon-cyan/20 border border-neon-cyan flex items-center justify-center">
-                    <div className="w-3 h-3 bg-neon-cyan rounded-full animate-pulse shadow-[0_0_10px_#22d3ee]" />
+                    <div className="w-3 h-3 bg-neon-cyan rounded-full animate-pulse glow-cyan-sm" />
                 </div>
-                <span className="text-xl font-black uppercase tracking-tighter hologram-text">CITYFLUXY</span>
+                <span className="text-xl font-black uppercase tracking-tighter hologram-text">{site.name.toUpperCase()}</span>
             </div>
 
             <div className="flex items-center gap-6">

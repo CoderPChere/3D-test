@@ -25,7 +25,7 @@ export default function AnimatedTrafficSignal() {
             <div className="absolute bottom-14 w-40 h-6 bg-neon-cyan/20 blur-[10px] rounded-[100%]" />
             <div className="absolute bottom-0 w-[2px] h-32 bg-gradient-to-t from-transparent to-white/10" />
             
-            <div className="relative glass rounded-[40px] p-8 border border-white/10 flex flex-col gap-8 shadow-[0_0_50px_rgba(34,211,238,0.05)] backdrop-blur-md z-10 bg-black/40">
+            <div className="relative glass rounded-[40px] p-8 border border-white/10 flex flex-col gap-8 glow-cyan-lg backdrop-blur-md z-10 bg-black/40">
                 {/* Red Light */}
                 <div className="relative w-24 h-24 rounded-full bg-black/80 border border-white/5 flex items-center justify-center shadow-inner">
                     <motion.div

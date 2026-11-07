@@ -77,3 +77,6 @@ canvas {
 .glow-cyan-lg { box-shadow: 0 0 50px color-mix(in srgb, var(--neon-cyan) 10%, transparent); }
 .glow-purple-md { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-purple) 30%, transparent); }
 .glow-purple-lg { box-shadow: 0 0 40px color-mix(in srgb, var(--neon-purple) 15%, transparent); }
+/* focus variants — plain CSS classes need explicit rules; Tailwind can't generate variants for them */
+.focus\:glow-cyan-md:focus { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-cyan) 30%, transparent); }
+.focus\:glow-purple-md:focus { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-purple) 30%, transparent); }

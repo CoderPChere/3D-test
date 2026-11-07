@@ -50,7 +50,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSave, onLogout }
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="max-w-xl w-full glass rounded-3xl p-10 border border-white/10 relative overflow-hidden shadow-[0_0_40px_rgba(168,85,247,0.15)]"
+                        className="max-w-xl w-full glass rounded-3xl p-10 border border-white/10 relative overflow-hidden glow-purple-lg"
                     >
                         {/* Background Glow Decor */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-neon-purple/20 rounded-full blur-[100px]" />
@@ -63,7 +63,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSave, onLogout }
                         </button>
 
                         <div className="relative z-10 flex items-center gap-6 mb-10">
-                            <div className="w-20 h-20 rounded-full bg-black/50 border-2 border-neon-purple flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                            <div className="w-20 h-20 rounded-full bg-black/50 border-2 border-neon-purple flex items-center justify-center glow-purple-md">
                                 <span className="text-3xl font-bold text-neon-purple">{user.name.charAt(0).toUpperCase()}</span>
                             </div>
                             <div>
@@ -116,7 +116,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSave, onLogout }
                                             type="text" 
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
-                                            className="w-full bg-black/50 border border-neon-purple/50 rounded-xl px-5 py-4 text-white focus:border-neon-purple focus:shadow-[0_0_15px_rgba(168,85,247,0.3)] focus:outline-none transition-all font-mono"
+                                            className="w-full bg-black/50 border border-neon-purple/50 rounded-xl px-5 py-4 text-white focus:border-neon-purple focus:glow-purple-md focus:outline-none transition-all font-mono"
                                             required
                                         />
                                     </div>
@@ -126,7 +126,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSave, onLogout }
                                             type="email" 
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full bg-black/50 border border-neon-purple/50 rounded-xl px-5 py-4 text-white focus:border-neon-purple focus:shadow-[0_0_15px_rgba(168,85,247,0.3)] focus:outline-none transition-all font-mono"
+                                            className="w-full bg-black/50 border border-neon-purple/50 rounded-xl px-5 py-4 text-white focus:border-neon-purple focus:glow-purple-md focus:outline-none transition-all font-mono"
                                             required
                                         />
                                     </div>
@@ -134,7 +134,7 @@ export default function ProfileModal({ isOpen, onClose, user, onSave, onLogout }
                                     <div className="flex gap-4 pt-4">
                                         <button 
                                             type="submit"
-                                            className="flex-1 bg-neon-purple/20 hover:bg-neon-purple hover:text-black text-neon-purple py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border border-neon-purple shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                                            className="flex-1 bg-neon-purple/20 hover:bg-neon-purple hover:text-black text-neon-purple py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border border-neon-purple glow-purple-md"
                                         >
                                             Save Changes
                                         </button>

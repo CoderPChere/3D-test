@@ -32,7 +32,7 @@ export default function CursorGlow() {
                     translateY: "-50%",
                 }}
             >
-                <div className="w-1 h-1 bg-neon-cyan rounded-full shadow-[0_0_10px_#22d3ee]" />
+                <div className="w-1 h-1 bg-neon-cyan rounded-full glow-cyan-sm" />
             </motion.div>
             <motion.div
                 className="fixed top-0 left-0 w-64 h-64 bg-neon-cyan/5 rounded-full blur-3xl pointer-events-none z-[9998]"

@@ -106,7 +106,7 @@ export default function AIChatbot() {
     };
 
     return (
-        <div className="w-full h-[600px] flex flex-col glass rounded-3xl border border-white/10 relative overflow-hidden shadow-[0_0_50px_rgba(34,211,238,0.1)]">
+        <div className="w-full h-[600px] flex flex-col glass rounded-3xl border border-white/10 relative overflow-hidden glow-cyan-lg">
             {/* Ambient Backgrounds */}
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-neon-cyan/10 rounded-full blur-[80px]" />
             <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-neon-blue/10 rounded-full blur-[80px]" />
@@ -115,7 +115,7 @@ export default function AIChatbot() {
             <div className="relative z-10 px-8 py-6 border-b border-white/10 flex justify-between items-center bg-black/40">
                 <div className="flex items-center gap-4">
                     <div className="relative flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-neon-cyan/20 flex items-center justify-center border border-neon-cyan/50 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+                        <div className="w-10 h-10 rounded-full bg-neon-cyan/20 flex items-center justify-center border border-neon-cyan/50 glow-cyan-md">
                             <span className="text-neon-cyan font-bold text-lg font-mono">AI</span>
                         </div>
                         <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-black" />
