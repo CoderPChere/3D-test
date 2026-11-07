@@ -216,7 +216,7 @@ Open your browser and go to `http://localhost:3000` — you should see the **Cit
 | Module | Status |
 |---|---|
 | 3D Smart City Visualization | ✅ Complete |
-| Auth System (Supabase + JWT) | ✅ Complete |
+| Auth System (Supabase + JWT) | ✅ Complete (requires external service) |
 | Investigation Dashboard | ✅ Complete (demo data) |
 | CCTV Live Feed Page | ✅ Complete (requires external service) |
 | AI Chatbot (Ollama) | ✅ Complete (requires external service) |
