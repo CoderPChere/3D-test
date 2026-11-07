@@ -9,6 +9,8 @@ import ProfileModal from "@/components/UI/ProfileModal";
 
 import AnimatedTrafficSignal from "@/components/UI/AnimatedTrafficSignal";
 import { site } from "@/config/site";
+import { readSession, clearSession } from "@/lib/auth";
+import NotConfigured from "@/components/UI/NotConfigured";
 
 type User = { name: string; email: string; role?: string; token?: string };
 
@@ -17,14 +19,11 @@ export default function AIPredictionPage() {
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-    // Restore session from localStorage on mount
+    // Restore session on mount
     useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        const name = localStorage.getItem("auth_name");
-        const email = localStorage.getItem("auth_email");
-        const role = localStorage.getItem("auth_role");
-        if (token && email) {
-            setUser({ name: name || email.split("@")[0], email, role: role || "viewer", token });
+        const s = readSession();
+        if (s && s.email) {
+            setUser({ name: s.name || s.email.split("@")[0], email: s.email, role: s.role || "viewer", token: s.token });
         }
     }, []);
 
@@ -53,19 +52,16 @@ export default function AIPredictionPage() {
                 onClose={() => setIsProfileOpen(false)} 
                 user={user} 
                 onSave={(updatedUser) => setUser(updatedUser)} 
-                onLogout={() => { 
-                    setUser(null); 
+                onLogout={() => {
+                    setUser(null);
                     setIsProfileOpen(false);
-                    localStorage.removeItem("auth_token");
-                    localStorage.removeItem("auth_role");
-                    localStorage.removeItem("auth_name");
-                    localStorage.removeItem("auth_email");
+                    clearSession();
                 }} 
             />
 
             {/* Main Content Area */}
             <section className="relative flex-1 flex flex-col items-center justify-center px-8 pt-32 pb-12 z-10 w-full max-w-[1600px] mx-auto">
-                {!user ? (
+                {site.features.auth && !user ? (
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -100,7 +96,13 @@ export default function AIPredictionPage() {
                         
                         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
                             <div className="lg:col-span-7 lg:col-start-2 w-full">
-                                <AIChatbot />
+                                {site.features.chatbot && site.api.chatbot ? (
+                                    <AIChatbot />
+                                ) : (
+                                    <div className="flex justify-center">
+                                        <NotConfigured service="AI chatbot" />
+                                    </div>
+                                )}
                             </div>
                             <div className="lg:col-span-3 lg:col-start-9 w-full flex justify-center pt-12">
                                 <AnimatedTrafficSignal />

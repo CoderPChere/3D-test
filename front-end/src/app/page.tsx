@@ -11,6 +11,7 @@ import AuthSection from "@/components/UI/AuthSection";
 import Navbar from "@/components/UI/Navbar";
 import ProfileModal from "@/components/UI/ProfileModal";
 import { site } from "@/config/site";
+import { readSession, clearSession } from "@/lib/auth";
 
 type User = { name: string; email: string; role?: string; token?: string };
 
@@ -19,14 +20,11 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Restore session from localStorage on mount
+  // Restore session on mount
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    const name = localStorage.getItem("auth_name");
-    const email = localStorage.getItem("auth_email");
-    const role = localStorage.getItem("auth_role");
-    if (token && email) {
-      setUser({ name: name || email.split("@")[0], email, role: role || "viewer", token });
+    const s = readSession();
+    if (s && s.email) {
+      setUser({ name: s.name || s.email.split("@")[0], email: s.email, role: s.role || "viewer", token: s.token });
     }
   }, []);
 
@@ -61,13 +59,10 @@ export default function Home() {
         onClose={() => setIsProfileOpen(false)} 
         user={user} 
         onSave={(updatedUser) => setUser(updatedUser)} 
-        onLogout={() => { 
-          setUser(null); 
+        onLogout={() => {
+          setUser(null);
           setIsProfileOpen(false);
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("auth_role");
-          localStorage.removeItem("auth_name");
-          localStorage.removeItem("auth_email");
+          clearSession();
         }} 
       />
 

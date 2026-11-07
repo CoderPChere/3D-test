@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { site } from "@/config/site";
+import { writeSession } from "@/lib/auth";
 
 const API_BASE_URL = site.api.auth;
 
@@ -23,7 +24,7 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    if (!isOpen) return null;
+    if (!isOpen || !site.features.auth) return null;
 
     const resetForm = () => {
         setName(""); setEmail(""); setPassword(""); setOrganization(""); setError(null);
@@ -36,12 +37,19 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!API_BASE_URL) {
-            setError("Auth API not configured — set api.auth in src/config/site.ts");
-            return;
-        }
         setIsLoading(true);
         setError(null);
+
+        // Mock mode (flag on, no API URL): accept any credentials, no network
+        if (!API_BASE_URL) {
+            const userName = name || email.split("@")[0];
+            writeSession({ token: "mock", role: "viewer", email, name: userName });
+            onSuccess({ name: userName, email, role: "viewer", token: "mock" });
+            resetForm();
+            onClose();
+            setIsLoading(false);
+            return;
+        }
 
         try {
             let response: Response;
@@ -66,12 +74,9 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                 throw new Error(data.detail || "Authentication failed. Please try again.");
             }
 
-            // Store token & user data in localStorage for session persistence
+            // Persist session for restore/logout (keys shared with lib/auth)
             const userName = data.name || name || email.split("@")[0];
-            localStorage.setItem("auth_token", data.access_token);
-            localStorage.setItem("auth_role", data.role);
-            localStorage.setItem("auth_email", email);
-            localStorage.setItem("auth_name", userName);
+            writeSession({ token: data.access_token, role: data.role, email, name: userName });
 
             onSuccess({
                 name: userName,
@@ -224,6 +229,12 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
                                         )}
                                     </button>
                                 </form>
+
+                                {!API_BASE_URL && (
+                                    <p className="relative z-10 mt-4 text-center text-[10px] font-mono uppercase tracking-widest text-neon-cyan/80">
+                                        DEMO MODE — any password works
+                                    </p>
+                                )}
                             </motion.div>
                         </AnimatePresence>
 

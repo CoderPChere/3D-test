@@ -7,6 +7,8 @@ import AuthSection from "@/components/UI/AuthSection";
 import ProfileModal from "@/components/UI/ProfileModal";
 import { Loader2, Camera, ShieldAlert, Wifi, Activity, CheckCircle, XCircle } from "lucide-react";
 import { site } from "@/config/site";
+import { readSession, clearSession } from "@/lib/auth";
+import NotConfigured from "@/components/UI/NotConfigured";
 
 type User = { name: string; email: string; role?: string; token?: string };
 
@@ -18,14 +20,11 @@ export default function CCTVPage() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isStreamLive, setIsStreamLive] = useState(false);
 
-    // Restore session from localStorage
+    // Restore session on mount
     useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        const name = localStorage.getItem("auth_name");
-        const email = localStorage.getItem("auth_email");
-        const role = localStorage.getItem("auth_role");
-        if (token && email) {
-            setUser({ name: name || email.split("@")[0], email, role: role || "viewer", token });
+        const s = readSession();
+        if (s && s.email) {
+            setUser({ name: s.name || s.email.split("@")[0], email: s.email, role: s.role || "viewer", token: s.token });
         }
     }, []);
 
@@ -53,12 +52,12 @@ export default function CCTVPage() {
                 onLogout={() => {
                     setUser(null);
                     setIsProfileOpen(false);
-                    ["auth_token", "auth_role", "auth_name", "auth_email"].forEach(k => localStorage.removeItem(k));
+                    clearSession();
                 }}
             />
 
             <section className="relative flex-1 flex flex-col items-center justify-center px-8 pt-24 pb-12 z-10 w-full max-w-[1400px] mx-auto">
-                {!user ? (
+                {site.features.auth && !user ? (
                     // --- ACCESS DENIED ---
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -120,55 +119,63 @@ export default function CCTVPage() {
                                 <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-neon-cyan/40 m-6" />
                             </div>
 
-                            {/* Always render the stream img — onLoad/onError control the UI state */}
-                            <img
-                                src={STREAM_URL}
-                                alt="Live CCTV Feed"
-                                className={`w-full h-full object-contain transition-opacity duration-500 ${isStreamLive ? "opacity-100" : "opacity-0 absolute"}`}
-                                onLoad={() => setIsStreamLive(true)}
-                                onError={() => setIsStreamLive(false)}
-                            />
-
-                            {/* Loading overlay — shown while stream is not yet live */}
-                            <AnimatePresence>
-                                {!isStreamLive && (
-                                    <motion.div
-                                        key="loading"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.4 }}
-                                        className="absolute inset-0 flex flex-col items-center justify-center gap-6"
-                                    >
-                                        <div className="relative">
-                                            <div className="w-24 h-24 border-2 border-white/5 rounded-full flex items-center justify-center">
-                                                <Loader2 className="w-12 h-12 text-neon-cyan animate-spin" strokeWidth={1} />
-                                            </div>
-                                            <div className="absolute inset-0 border-t-2 border-neon-cyan/40 rounded-full animate-[spin_3s_linear_infinite]" />
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-neon-cyan text-sm font-bold uppercase tracking-[0.4em] animate-pulse mb-2">
-                                                Initializing Neural Feed
-                                            </p>
-                                            <p className="text-slate-500 text-[9px] uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
-                                                Waiting for Python script...<br />
-                                                Run: <span className="text-neon-cyan">uvicorn server:app</span> to start the feed.
-                                            </p>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* REC + Timestamp overlay — only shown when live */}
-                            {isStreamLive && (
+                            {/* Feed slot — configured stream, or the not-configured panel */}
+                            {(!site.features.cctv || !STREAM_URL) ? (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center p-8">
+                                    <NotConfigured service="CCTV live feed" />
+                                </div>
+                            ) : (
                                 <>
-                                    <div className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-black/60 px-3 py-1 rounded">
-                                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_red]" />
-                                        <span className="text-[10px] font-bold text-white tracking-widest">REC</span>
-                                    </div>
-                                    <div className="absolute top-6 right-6 z-20 bg-black/60 px-3 py-1 rounded text-[10px] text-white font-bold font-mono">
-                                        {new Date().toLocaleTimeString()}
-                                    </div>
+                                    <img
+                                        src={STREAM_URL}
+                                        alt="Live CCTV Feed"
+                                        className={`w-full h-full object-contain transition-opacity duration-500 ${isStreamLive ? "opacity-100" : "opacity-0 absolute"}`}
+                                        onLoad={() => setIsStreamLive(true)}
+                                        onError={() => setIsStreamLive(false)}
+                                    />
+
+                                    {/* Loading overlay — shown while stream is not yet live */}
+                                    <AnimatePresence>
+                                        {!isStreamLive && (
+                                            <motion.div
+                                                key="loading"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.4 }}
+                                                className="absolute inset-0 flex flex-col items-center justify-center gap-6"
+                                            >
+                                                <div className="relative">
+                                                    <div className="w-24 h-24 border-2 border-white/5 rounded-full flex items-center justify-center">
+                                                        <Loader2 className="w-12 h-12 text-neon-cyan animate-spin" strokeWidth={1} />
+                                                    </div>
+                                                    <div className="absolute inset-0 border-t-2 border-neon-cyan/40 rounded-full animate-[spin_3s_linear_infinite]" />
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-neon-cyan text-sm font-bold uppercase tracking-[0.4em] animate-pulse mb-2">
+                                                        Initializing Neural Feed
+                                                    </p>
+                                                    <p className="text-slate-500 text-[9px] uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
+                                                        Waiting for Python script...<br />
+                                                        Run: <span className="text-neon-cyan">uvicorn server:app</span> to start the feed.
+                                                    </p>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* REC + Timestamp overlay — only shown when live */}
+                                    {isStreamLive && (
+                                        <>
+                                            <div className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-black/60 px-3 py-1 rounded">
+                                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_red]" />
+                                                <span className="text-[10px] font-bold text-white tracking-widest">REC</span>
+                                            </div>
+                                            <div className="absolute top-6 right-6 z-20 bg-black/60 px-3 py-1 rounded text-[10px] text-white font-bold font-mono">
+                                                {new Date().toLocaleTimeString()}
+                                            </div>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </div>

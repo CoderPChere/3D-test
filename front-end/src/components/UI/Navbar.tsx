@@ -10,6 +10,8 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user, onLoginClick, onProfileClick }: NavbarProps) {
+    // Auth off → every page is browsable without a session
+    const canBrowse = !site.features.auth || !!user;
     return (
         <div className="fixed top-0 left-0 w-full px-2 pt-2 z-50">
             <motion.nav 
@@ -28,7 +30,11 @@ export default function Navbar({ user, onLoginClick, onProfileClick }: NavbarPro
             <div className="flex items-center gap-6">
                 <div className="hidden md:flex gap-6 mr-8">
                     {["Surveillance", "Database", "Protocols", "AI Prediction", "CCTV"]
-                        .filter(item => (item !== "AI Prediction" && item !== "CCTV") || user)
+                        .filter(item => {
+                            if (item === "AI Prediction") return site.features.chatbot && canBrowse;
+                            if (item === "CCTV") return site.features.cctv && canBrowse;
+                            return true;
+                        })
                         .map(item => (
                             <a 
                                 key={item} 
@@ -42,7 +48,7 @@ export default function Navbar({ user, onLoginClick, onProfileClick }: NavbarPro
                                 {item}
                             </a>
                         ))}
-                    {user && (
+                    {site.features.traffic && canBrowse && (
                         <a href="/real-time-traffic" className="text-xs uppercase font-bold text-neon-cyan hover:text-white transition-colors tracking-widest flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                             Live Traffic
@@ -60,14 +66,14 @@ export default function Navbar({ user, onLoginClick, onProfileClick }: NavbarPro
                         </div>
                         <span className="text-xs font-mono text-white tracking-wider">{user.name}</span>
                     </button>
-                ) : (
+                ) : site.features.auth ? (
                     <button 
                         onClick={onLoginClick}
                         className="neon-border bg-neon-cyan/10 hover:bg-neon-cyan/20 text-neon-cyan px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all"
                     >
                         Agent Login
                     </button>
-                )}
+                ) : null}
             </div>
             </motion.nav>
 
