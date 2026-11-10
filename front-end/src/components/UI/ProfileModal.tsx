@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProfileModalProps {
@@ -16,12 +16,17 @@ export default function ProfileModal({ isOpen, onClose, user, onSave, onLogout }
     const [email, setEmail] = useState("");
     const [isEditing, setIsEditing] = useState(false);
 
-    useEffect(() => {
+    // Re-sync fields when the modal reopens or the user changes — adjusting
+    // during render (React's "adjust state when props change" pattern) instead
+    // of setState inside an effect, which cascades renders.
+    const [synced, setSynced] = useState({ user, isOpen });
+    if (synced.user !== user || synced.isOpen !== isOpen) {
+        setSynced({ user, isOpen });
         if (user) {
             setName(user.name);
             setEmail(user.email);
         }
-    }, [user, isOpen]);
+    }
 
     if (!isOpen || !user) return null;
 

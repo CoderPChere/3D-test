@@ -94,7 +94,7 @@ export default function AIChatbot() {
             };
 
             setMessages((prev) => [...prev, aiMsg]);
-        } catch (error: any) {
+        } catch (error) {
             console.error("Ollama Error:", error);
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),

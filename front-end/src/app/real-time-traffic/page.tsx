@@ -1,27 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/UI/Navbar";
 import NotConfigured from "@/components/UI/NotConfigured";
 import { site } from "@/config/site";
-import { readSession } from "@/lib/auth";
+import { useSession } from "@/lib/auth";
 
 export default function RealTimeTraffic() {
-  const [user, setUser] = useState<{ name: string; email: string; role?: string; token?: string } | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    if (!site.features.auth) return; // auth off → page is open, no session needed
+  // Session restore from localStorage (external store, read without an effect);
+  // auth off → no session needed, page is open.
+  const session = useSession();
+  const hasSession = !!session?.email;
+  const user =
+    site.features.auth && hasSession
+      ? { name: session.name || session.email.split("@")[0], email: session.email, role: session.role || "viewer", token: session.token }
+      : null;
 
-    const s = readSession();
-    if (!s || !s.email) {
+  useEffect(() => {
+    if (site.features.auth && !hasSession) {
       // Not logged in
       router.push("/");
-    } else {
-      setUser({ name: s.name || s.email.split("@")[0], email: s.email, role: s.role || "viewer", token: s.token });
     }
-  }, [router]);
+  }, [router, hasSession]);
 
   if (site.features.auth && !user) {
     return (

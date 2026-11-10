@@ -14,7 +14,7 @@ const DATA = [
 ];
 
 interface InvestigationDashboardProps {
-    user: any;
+    user: { name: string; email: string } | null;
 }
 
 export default function InvestigationDashboard({ user }: InvestigationDashboardProps) {

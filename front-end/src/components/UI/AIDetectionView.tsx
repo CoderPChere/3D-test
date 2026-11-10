@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Search, Loader2, CheckCircle, Database } from "lucide-react";
 import { site } from "@/config/site";
@@ -16,6 +16,7 @@ export default function AIDetectionView() {
     const [currentStage, setCurrentStage] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
     const [plate, setPlate] = useState("");
+    const reduced = useReducedMotion();
 
     useEffect(() => {
         if (currentStage < STAGES.length) {
@@ -33,6 +34,7 @@ export default function AIDetectionView() {
                 i++;
                 if (i > targetPlate.length) clearInterval(typeInterval);
             }, 100);
+            return () => clearInterval(typeInterval); // unmount mid-typewriter (task 6.6)
         }
     }, [currentStage]);
 
@@ -44,11 +46,11 @@ export default function AIDetectionView() {
                     {/* Blurry Background */}
                     <div className={`absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2069&auto=format&fit=crop')] bg-cover bg-center transition-all duration-1000 ${isComplete ? 'blur-0' : 'blur-xl'}`} />
 
-                    {/* Scanning Line */}
+                    {/* Scanning Line — static under reduced motion (task 6.8) */}
                     {!isComplete && (
                         <motion.div
-                            animate={{ top: ["0%", "100%"] }}
-                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            animate={reduced ? { top: "50%" } : { top: ["0%", "100%"] }}
+                            transition={reduced ? { duration: 0 } : { duration: 2, repeat: Infinity, ease: "linear" }}
                             className="absolute left-0 right-0 h-1 bg-neon-cyan glow-cyan-md z-10"
                         />
                     )}

@@ -1,234 +1,219 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Box, Html } from "@react-three/drei";
-import { trafficState } from "./City";
+import { Html } from "@react-three/drei";
+import type { SignalClock } from "@/traffic/signal";
+import { TrafficSimulation, generateSpawns, CATEGORIES } from "@/traffic/simulation";
+import { defaultProfile, type TrafficDensity } from "@/config/city";
+import { QUALITY, quality } from "@/config/quality";
 
-const COLORS = ["#0ea5e9", "#22d3ee", "#3b82f6", "#6366f1", "#a855f7", "#ffffff", "#f59e0b"];
+const MATRIX_TMP = new THREE.Matrix4();
+const COLOR_TMP = new THREE.Color();
 
-// Global registry of all vehicle positions for collision detection
-export const vehiclePositions: { [id: string]: { laneId: string, progress: number, direction: number } } = {};
+export default function TrafficSystem({ clock }: { clock: SignalClock }) {
+    // boot density comes from the profile; a runtime tier switch applies the
+    // tier table's density (task 6.4 / config docs)
+    const [density, setDensity] = useState<TrafficDensity>(defaultProfile.traffic.density);
 
-export default function TrafficSystem() {
-    const cars = useMemo(() => {
-        const result = [];
-        let idCounter = 0;
-        const roadIndices = [0, 1, 2];
-        const directions = [1, -1];
-        const lanes = [1, 2]; // Inner lane (1) and Outer lane (2)
-        
-        for (const roadIndex of roadIndices) {
-            for (const isHorizontal of [true, false]) {
-                for (const direction of directions) {
-                    for (const lane of lanes) {
-                        // 1 car per lane
-                        for (let i = 0; i < 1; i++) {
-                            const offset = (i * 0.5) + (roadIndex * 0.33) + (isHorizontal ? 0 : 0.16) + (direction === 1 ? 0 : 0.08) + (lane * 0.1);
-                            
-                            const laneOffset = direction * (lane === 1 ? 1.0 : 3.0);
-                            const fixedPos = [-36, 0, 36][roadIndex];
-                            
-                            const laneId = `${isHorizontal ? 'H' : 'V'}-${fixedPos}-${laneOffset}`;
-                            
-                            result.push({
-                                id: (idCounter++).toString(),
-                                // Reduced base speed by another 50%
-                                baseSpeed: 0.03 + Math.random() * 0.01,  
-                                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                                offset: offset,
-                                roadIndex: roadIndex,
-                                isHorizontal: isHorizontal,
-                                direction: direction,
-                                laneOffset: laneOffset,
-                                laneId: laneId,
-                                // Highlight roughly 30% of cars
-                                isHighlighted: Math.random() < 0.3 
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        return result;
-    }, []);
-
-    return (
-        <group>
-            {cars.map((car) => (
-                <Car key={car.id} data={car} />
-            ))}
-        </group>
+    const sim = useMemo(
+        () =>
+            new TrafficSimulation(
+                generateSpawns(defaultProfile.seed, density),
+                defaultProfile.traffic.minGap
+            ),
+        [density]
     );
-}
+    const meshRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
+    const beamRef = useRef<THREE.InstancedMesh>(null);
+    const anchorRef = useRef<THREE.Group>(null);
+    const [hovered, setHovered] = useState<number | null>(null);
+    // scan state drives only per-frame beam matrices — a ref, so scan ticks
+    // never commit React (task 6.5)
+    const scanned = useRef(new Set<number>());
+    const scanTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
-function Car({ data }: { data: any }) {
-    const meshRef = useRef<THREE.Group>(null!);
-    const [hovered, setHovered] = useState(false);
-    const [scanned, setScanned] = useState(false);
-    
-    // Convert initial offset to world units (each loop is range * 2)
-    const range = 60;
-    const progressRef = useRef(data.offset * range * 2); 
-    const currentSpeedRef = useRef(0);
+    // tier switch → new density → new vehicle set: rebuild the sim and drop
+    // stale hover/scan state in the same batch (subscribe callback, not the
+    // effect body — react-hooks/set-state-in-effect)
+    useEffect(
+        () =>
+            quality.subscribe(() => {
+                setDensity(QUALITY[quality.get()].density);
+                setHovered(null);
+                scanned.current.clear();
+            }),
+        []
+    );
 
-    useFrame((state, delta) => {
-        const roadPositions = [-36, 0, 36];
-        const fixedPos = roadPositions[data.roadIndex];
+    const counts = useMemo(
+        () => CATEGORIES.map((_, c) => sim.spawns.filter((v) => v.category === c).length),
+        [sim]
+    );
+    // instanceId -> spawn index, per category mesh
+    const spawnAtSlot = useMemo(() => {
+        const map: number[][] = CATEGORIES.map(() => []);
+        sim.spawns.forEach((v, i) => {
+            map[v.category][v.slot] = i;
+        });
+        return map;
+    }, [sim]);
 
-        // Current actual mathematical position along the road (-60 to 60)
-        let currentPos = (progressRef.current % (range * 2)) - range;
-        if (currentPos < -range) currentPos += range * 2; 
-
-        // 1. Calculate base desired speed
-        let targetSpeed = data.baseSpeed * 200 * delta; 
-        
-        // 2. Traffic Light Logic
-        const c = trafficState.cycle;
-        let isRed = data.isHorizontal ? (c >= 40) : (c < 50 || c >= 90);
-
-        if (isRed) {
-            let distToIntersection = Infinity;
-            for (let inter of roadPositions) {
-                const diff = (inter - currentPos) * data.direction;
-                if (diff > 2 && diff < 12) {
-                    distToIntersection = diff;
-                }
-            }
-            if (distToIntersection < Infinity) {
-                targetSpeed *= Math.max(0, (distToIntersection - 2) / 6);
-            }
-        }
-
-        // 3. Collision avoidance (Queueing AI)
-        // REMOVED: Cars will no longer stop for each other
-
-        // Apply smooth acceleration/deceleration
-        currentSpeedRef.current = THREE.MathUtils.lerp(currentSpeedRef.current, targetSpeed, 0.1);
-        progressRef.current += currentSpeedRef.current;
-        
-        // Register our position for others to check
-        let myPosForOthers = (progressRef.current % (range * 2)) - range;
-        if (myPosForOthers < -range) myPosForOthers += range * 2;
-        
-        vehiclePositions[data.id] = {
-            laneId: data.laneId,
-            progress: myPosForOthers,
-            direction: data.direction
+    // simulation lifecycle: allocate on mount, release exactly once on unmount
+    useEffect(() => {
+        sim.start();
+        const timers = scanTimers.current;
+        return () => {
+            sim.stop();
+            for (const t of timers.values()) clearTimeout(t);
+            timers.clear();
         };
+    }, [sim]);
 
-        // Render position calculation
-        let rawProgress = (progressRef.current % (range * 2));
-        let progress = rawProgress - range;
-        if (data.direction < 0) {
-           progress = range - rawProgress;
+    // instance colors are painted from the frame loop (hover changes only):
+    // reading meshRefs in an effect would taint it for per-frame mutation
+    const lastPaint = useRef<number | null>(null);
+
+    // the single shared frame loop: step typed-array state, then write transforms
+    useFrame((state, dt) => {
+        sim.step(dt, clock);
+        const world = sim.world;
+        const heading = sim.heading;
+        if (!world || !heading) return;
+
+        for (const v of sim.spawns) {
+            const mesh = meshRefs.current[v.category];
+            if (!mesh) continue;
+            MATRIX_TMP.makeRotationY(heading[v.id]);
+            MATRIX_TMP.setPosition(world[v.id * 2], 0, world[v.id * 2 + 1]);
+            mesh.setMatrixAt(v.slot, MATRIX_TMP);
+        }
+        for (const mesh of meshRefs.current) {
+            if (mesh) mesh.instanceMatrix.needsUpdate = true;
         }
 
-        let x = 0, z = 0;
-        if (data.isHorizontal) {
-            x = progress;
-            z = fixedPos + data.laneOffset;
-            meshRef.current.rotation.y = data.direction > 0 ? 0 : Math.PI;
-        } else {
-            z = progress;
-            x = fixedPos - data.laneOffset;
-            meshRef.current.rotation.y = data.direction > 0 ? -Math.PI / 2 : Math.PI / 2;
+        // paint instance colors on first frame and whenever hover changes
+        const paintKey = hovered ?? -1;
+        if (lastPaint.current !== paintKey) {
+            const first = lastPaint.current === null;
+            lastPaint.current = paintKey;
+            for (const v of sim.spawns) {
+                const mesh = meshRefs.current[v.category];
+                if (!mesh) continue;
+                if (first) mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                mesh.setColorAt(v.slot, COLOR_TMP.set(hovered === v.id ? "#ffffff" : v.color));
+            }
+            for (const mesh of meshRefs.current) {
+                if (mesh?.instanceColor) mesh.instanceColor.needsUpdate = true;
+            }
+            const beam = beamRef.current;
+            if (beam) {
+                if (first) beam.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                for (const v of sim.spawns) beam.setColorAt(v.id, COLOR_TMP.set(v.color));
+                if (beam.instanceColor) beam.instanceColor.needsUpdate = true;
+            }
         }
 
-        meshRef.current.position.set(x, 0, z);
+        // scan beams: one instance per vehicle, scaled to zero when inactive
+        const beam = beamRef.current;
+        if (beam) {
+            for (const v of sim.spawns) {
+                if (scanned.current.has(v.id)) {
+                    MATRIX_TMP.makeTranslation(world[v.id * 2], 5, world[v.id * 2 + 1]);
+                } else {
+                    MATRIX_TMP.makeScale(0, 0, 0);
+                }
+                beam.setMatrixAt(v.id, MATRIX_TMP);
+            }
+            beam.instanceMatrix.needsUpdate = true;
+        }
 
-        // Random scanning trigger
-        if (Math.sin(state.clock.getElapsedTime() * 5 + data.offset) > 0.999 && !scanned) {
-            setScanned(true);
-            setTimeout(() => setScanned(false), 2000);
+        // tooltip anchor follows the hovered vehicle (bounds guard: hover can
+        // be stale for a frame after a density switch shrinks the vehicle set)
+        const anchor = anchorRef.current;
+        if (anchor && hovered !== null && hovered < sim.spawns.length) {
+            anchor.position.set(world[hovered * 2], 2, world[hovered * 2 + 1]);
+        }
+
+        // scan-beam trigger (ported from the old per-car frame loops)
+        const t = state.clock.getElapsedTime();
+        for (const v of sim.spawns) {
+            if (
+                Math.sin(t * 5 + v.offset) > 0.999 &&
+                !scanned.current.has(v.id) &&
+                !scanTimers.current.has(v.id)
+            ) {
+                const id = v.id;
+                scanned.current.add(id);
+                scanTimers.current.set(
+                    id,
+                    setTimeout(() => {
+                        scanTimers.current.delete(id);
+                        scanned.current.delete(id);
+                    }, 2000)
+                );
+            }
         }
     });
 
-    // Clean up registry on unmount
-    useMemo(() => {
-        return () => {
-            delete vehiclePositions[data.id];
-        }
-    }, [data.id]);
+    const spawn = hovered !== null ? (sim.spawns[hovered] ?? null) : null;
 
     return (
-        <group ref={meshRef}>
-            <group
-                onPointerOver={() => setHovered(true)}
-                onPointerOut={() => setHovered(false)}
+        <group>
+            {/* one InstancedMesh per category (car / bus / truck) */}
+            {CATEGORIES.map((cat, c) => (
+                <instancedMesh
+                    key={cat.name}
+                    ref={(el) => {
+                        meshRefs.current[c] = el;
+                    }}
+                    args={[undefined, undefined, counts[c]]}
+                    // shadow policy (task 6.3): small objects never cast — groundings
+                    // come from the ContactShadows depth pass instead
+                    frustumCulled={false}
+                    onPointerMove={(e) => {
+                        if (e.instanceId != null) {
+                            const idx = spawnAtSlot[c][e.instanceId];
+                            setHovered((prev) => (prev === idx ? prev : idx));
+                        }
+                    }}
+                    onPointerOut={() => setHovered(null)}
+                >
+                    <boxGeometry args={cat.size} />
+                    <meshStandardMaterial metalness={0.6} roughness={0.2} />
+                </instancedMesh>
+            ))}
+
+            {/* scan beams — one instance per vehicle, moved by the shared loop */}
+            <instancedMesh
+                ref={beamRef}
+                args={[undefined, undefined, sim.spawns.length]}
+                frustumCulled={false}
+                raycast={() => null}
             >
-                {/* Chassis */}
-                <Box args={[2.5, 0.5, 1.2]} position={[0, 0.4, 0]} castShadow>
-                     <meshStandardMaterial color={hovered ? "#fff" : data.color} metalness={0.6} roughness={0.2} />
-                </Box>
-                {/* Cabin */}
-                <Box args={[1.2, 0.4, 1.0]} position={[-0.2, 0.85, 0]} castShadow>
-                     <meshStandardMaterial color="#111" metalness={0.9} roughness={0.1} />
-                </Box>
-                
-                {/* Wheels */}
-                {/* Front Left */}
-                <mesh position={[0.8, 0.2, 0.6]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-                    <cylinderGeometry args={[0.2, 0.2, 0.2, 16]} />
-                    <meshStandardMaterial color="#111" roughness={0.9} />
-                </mesh>
-                {/* Front Right */}
-                <mesh position={[0.8, 0.2, -0.6]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-                    <cylinderGeometry args={[0.2, 0.2, 0.2, 16]} />
-                    <meshStandardMaterial color="#111" roughness={0.9} />
-                </mesh>
-                {/* Rear Left */}
-                <mesh position={[-0.8, 0.2, 0.6]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-                    <cylinderGeometry args={[0.2, 0.2, 0.2, 16]} />
-                    <meshStandardMaterial color="#111" roughness={0.9} />
-                </mesh>
-                {/* Rear Right */}
-                <mesh position={[-0.8, 0.2, -0.6]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-                    <cylinderGeometry args={[0.2, 0.2, 0.2, 16]} />
-                    <meshStandardMaterial color="#111" roughness={0.9} />
-                </mesh>
+                <cylinderGeometry args={[0.1, 2, 10, 32]} />
+                <meshStandardMaterial
+                    color="#22d3ee"
+                    transparent
+                    opacity={0.3}
+                    emissive="#22d3ee"
+                    emissiveIntensity={2}
+                    depthWrite={false}
+                />
+            </instancedMesh>
 
-                {/* Headlights */}
-                <mesh position={[1.26, 0.5, 0.4]}>
-                    <boxGeometry args={[0.05, 0.15, 0.2]} />
-                    <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={2} />
-                </mesh>
-                <mesh position={[1.26, 0.5, -0.4]}>
-                    <boxGeometry args={[0.05, 0.15, 0.2]} />
-                    <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={2} />
-                </mesh>
-
-                {/* Taillights */}
-                <mesh position={[-1.26, 0.5, 0.4]}>
-                    <boxGeometry args={[0.05, 0.15, 0.2]} />
-                    <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={2} />
-                </mesh>
-                <mesh position={[-1.26, 0.5, -0.4]}>
-                    <boxGeometry args={[0.05, 0.15, 0.2]} />
-                    <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={2} />
-                </mesh>
-
-                {/* Scanning Beam Visual */}
-                {scanned && (
-                    <mesh position={[0, 5, 0]}>
-                        <cylinderGeometry args={[0.1, 2, 10, 32]} />
-                        <meshStandardMaterial
-                            color={data.color}
-                            transparent
-                            opacity={0.3}
-                            emissive={data.color}
-                            emissiveIntensity={2}
-                        />
-                    </mesh>
-                )}
-
-                {/* Floating Data if hovered */}
-                {hovered && (
+            {/* hover tooltip anchored to the hovered vehicle */}
+            <group ref={anchorRef}>
+                {spawn && (
                     <Html distanceFactor={15}>
                         <div className="glass p-2 rounded border border-neon-cyan whitespace-nowrap bg-black/50 pointer-events-none">
-                            <p className="text-[8px] uppercase text-slate-200 font-mono">Scan ID: {Math.floor(Math.random() * 10000)}</p>
-                            <p className="text-[10px] font-bold text-neon-cyan font-mono tracking-tighter">SPD: {Math.floor(data.speed * 400)} KM/H</p>
+                            <p className="text-[8px] uppercase text-slate-200 font-mono">
+                                Scan ID: CFX-{String(spawn.id + 1).padStart(4, "0")}
+                            </p>
+                            <p className="text-[10px] font-bold text-neon-cyan font-mono tracking-tighter">
+                                SPD: {Math.floor(sim.speed(spawn.id) * 400)} KM/H
+                            </p>
                         </div>
                     </Html>
                 )}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Scene from "@/components/Three/Scene";
 import City from "@/components/Three/City";
 import CityHUD from "@/components/UI/CityHUD";
+import LandmarkPanel from "@/components/UI/LandmarkPanel";
 import AIDetectionView from "@/components/UI/AIDetectionView";
 import InvestigationDashboard from "@/components/UI/InvestigationDashboard";
 import CursorGlow from "@/components/UI/CursorGlow";
@@ -11,7 +12,8 @@ import AuthSection from "@/components/UI/AuthSection";
 import Navbar from "@/components/UI/Navbar";
 import ProfileModal from "@/components/UI/ProfileModal";
 import { site } from "@/config/site";
-import { readSession, clearSession } from "@/lib/auth";
+import { defaultProfile } from "@/config/city";
+import { useSession, clearSession } from "@/lib/auth";
 
 type User = { name: string; email: string; role?: string; token?: string };
 
@@ -20,13 +22,14 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Restore session on mount
-  useEffect(() => {
-    const s = readSession();
-    if (s && s.email) {
-      setUser({ name: s.name || s.email.split("@")[0], email: s.email, role: s.role || "viewer", token: s.token });
-    }
-  }, []);
+  // Session restore from localStorage (external store, read without an effect).
+  // Local `user` covers login/profile-save and takes precedence when present.
+  const session = useSession();
+  const sessionUser: User | null =
+    session && session.email
+      ? { name: session.name || session.email.split("@")[0], email: session.email, role: session.role || "viewer", token: session.token }
+      : null;
+  const activeUser = user ?? sessionUser;
 
   return (
     <main className="relative min-h-[500vh] bg-background">
@@ -34,7 +37,7 @@ export default function Home() {
       
       {/* Global Navigation */}
       <Navbar 
-        user={user} 
+        user={activeUser} 
         onLoginClick={() => setIsAuthOpen(true)} 
         onProfileClick={() => setIsProfileOpen(true)} 
       />
@@ -47,6 +50,9 @@ export default function Home() {
       {/* Futuristic Overlay UI */}
       <CityHUD />
 
+      {/* Selected landmark info (pairs with the 3D landmark meshes) */}
+      <LandmarkPanel />
+
       {/* Modals */}
       <AuthSection 
         isOpen={isAuthOpen} 
@@ -57,7 +63,7 @@ export default function Home() {
       <ProfileModal 
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)} 
-        user={user} 
+        user={activeUser} 
         onSave={(updatedUser) => setUser(updatedUser)} 
         onLogout={() => {
           setUser(null);
@@ -70,10 +76,10 @@ export default function Home() {
       <section className="relative h-screen flex items-center justify-center pointer-events-none">
         <div className="max-w-4xl px-12 text-center pointer-events-auto">
           <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter hologram-text mb-4 mt-16">
-            {site.name.toUpperCase()}
+            {defaultProfile.uiContent.hero.title.toUpperCase()}
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto uppercase tracking-[0.2em] font-light">
-            {site.tagline}
+            {defaultProfile.uiContent.hero.tagline}
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <div className="w-12 h-[1px] bg-neon-cyan/50 self-center" />
@@ -123,7 +129,7 @@ export default function Home() {
             </button>
           </div>
 
-          <InvestigationDashboard user={user} />
+          <InvestigationDashboard user={activeUser} />
         </div>
       </section>
 

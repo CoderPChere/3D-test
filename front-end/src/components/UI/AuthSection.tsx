@@ -88,8 +88,8 @@ export default function AuthSection({ isOpen, onClose, onSuccess }: AuthModalPro
 
             resetForm();
             onClose();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Authentication failed. Please try again.");
         } finally {
             setIsLoading(false);
         }

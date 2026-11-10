@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/UI/Navbar";
 import AIChatbot from "@/components/UI/AIChatbot";
@@ -9,7 +9,7 @@ import ProfileModal from "@/components/UI/ProfileModal";
 
 import AnimatedTrafficSignal from "@/components/UI/AnimatedTrafficSignal";
 import { site } from "@/config/site";
-import { readSession, clearSession } from "@/lib/auth";
+import { useSession, clearSession } from "@/lib/auth";
 import NotConfigured from "@/components/UI/NotConfigured";
 
 type User = { name: string; email: string; role?: string; token?: string };
@@ -19,13 +19,14 @@ export default function AIPredictionPage() {
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-    // Restore session on mount
-    useEffect(() => {
-        const s = readSession();
-        if (s && s.email) {
-            setUser({ name: s.name || s.email.split("@")[0], email: s.email, role: s.role || "viewer", token: s.token });
-        }
-    }, []);
+    // Session restore from localStorage (external store, read without an effect).
+    // Local `user` covers login/profile-save and takes precedence when present.
+    const session = useSession();
+    const sessionUser: User | null =
+        session && session.email
+            ? { name: session.name || session.email.split("@")[0], email: session.email, role: session.role || "viewer", token: session.token }
+            : null;
+    const activeUser = user ?? sessionUser;
 
     return (
         <main className="relative min-h-screen bg-background overflow-hidden flex flex-col">
@@ -35,7 +36,7 @@ export default function AIPredictionPage() {
             
             {/* Global Navigation */}
             <Navbar 
-                user={user} 
+                user={activeUser} 
                 onLoginClick={() => setIsAuthOpen(true)} 
                 onProfileClick={() => setIsProfileOpen(true)} 
             />
@@ -50,7 +51,7 @@ export default function AIPredictionPage() {
             <ProfileModal 
                 isOpen={isProfileOpen} 
                 onClose={() => setIsProfileOpen(false)} 
-                user={user} 
+                user={activeUser} 
                 onSave={(updatedUser) => setUser(updatedUser)} 
                 onLogout={() => {
                     setUser(null);
@@ -61,7 +62,7 @@ export default function AIPredictionPage() {
 
             {/* Main Content Area */}
             <section className="relative flex-1 flex flex-col items-center justify-center px-8 pt-32 pb-12 z-10 w-full max-w-[1600px] mx-auto">
-                {site.features.auth && !user ? (
+                {site.features.auth && !activeUser ? (
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}

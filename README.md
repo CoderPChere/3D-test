@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Requires Node.js v18+.
+Open `http://localhost:3000`. Requires Node.js v20.9+ (Next.js 16's minimum).
 
 ---
 
@@ -34,6 +34,49 @@ Everything identity-related lives in **`front-end/src/config/site.ts`**:
 | `chatbot` (`name`, `welcome`, `systemPrompt`) | Chatbot persona and greeting |
 
 Defaults are the proven CityFluxy demo content — change only what you need. Generic sci-fi flavor copy (HUD micro-copy, form labels like "Secure Email", dashboard demo rows) intentionally stays in the components as the template's style.
+
+---
+
+## Create a project profile
+
+City shape, HUD copy, and quality defaults live in a second config file — **`front-end/src/config/city.ts`** (`defaultProfile`). Like `site.ts` it is pure data: edit a value, save, reload the page — no component code changes.
+
+```ts
+export const defaultProfile: CityProfile = {
+  seed: 1337,                                          // same seed ⇒ identical city
+  generation: { extent: 60, density: 0.7, heightRange: [10, 40] },
+  environment: { mode: "auto", cycleDurationSec: 120 }, // "day" | "golden-hour" | "night" | "auto"
+  traffic: { density: "medium", signalCycleSec: 10, minGap: 8 }, // "off" | "low" | "medium" | "high"
+  water: { enabled: true },                            // false removes the river and its bridges
+  districts: [
+    { name: "Central Core", center: [0, 0], radius: 24, style: "highrise", heightRange: [30, 70], density: 0.85 },
+    // style: "highrise" | "midrise" | "lowrise" | "campus" | "park" (park = green space, no buildings)
+  ],
+  landmarks: [
+    {
+      name: "harbor-exchange",
+      title: "Harbor Exchange",
+      description: "Riverside trading floor.",
+      district: "Central Core",                                  // must match a districts[].name
+      action: { type: "navigate", route: "/real-time-traffic" }, // or { type: "none" } / { type: "callback", id: "..." }
+    },
+  ],
+  emphasis: { districts: [], landmarks: ["nexus-spire"], dimOthers: false },
+  uiContent: {
+    hero: { title: "CITYFLUXY", tagline: "…" },
+    hud: { totalScans: "Total Scans", activeViolations: "Active Violations", /* …7 HUD labels */ },
+  },
+  quality: { tier: "medium" },                           // "low" | "medium" | "high"
+};
+```
+
+**Rules of thumb:**
+
+- **Defaults are safe** — `validateProfile()` falls back per invalid field (with a console warning), so a malformed profile renders the default city instead of crashing.
+- **Put district centers on the 12-unit plot grid** (multiples of 12) so generated roads run between building plots instead of through them; `style: "park"` districts stay green.
+- **Landmarks get a reserved plot at their district center**; duplicate names or missing fields are skipped with a console warning and the rest still work.
+- **Changing `seed`, `generation.*`, or district layout regenerates the city on reload** — the same seed always reproduces the identical layout.
+- **Every field and its default** is documented in the comment block at the top of `src/config/city.ts`.
 
 ---
 
@@ -81,7 +124,7 @@ The session is stored in `localStorage` under `auth_token`, `auth_role`, `auth_e
 |---|---|---|
 | `/` | Home | 3D city hero, scroll sections, Investigation Dashboard — always available |
 | `/cctv` | Live CCTV terminal | Feed slot gated by `features.cctv` + `api.videoStream`; auth-gated when `features.auth` |
-| `/ai-prediction` | Neural Traffic Predictor | Chatbot panel gated by `features.chatbot` + `api.chatbot` |
+| `/ai-prediction` | Neural Traffic Predictor | Chatbot panel gated by `features.chatbot` + `api.chatbot`; auth-gated when `features.auth` |
 | `/real-time-traffic` | Traffic dashboard | Iframe gated by `features.traffic`; auth-gated when `features.auth` |
 
 **To remove a page:** delete its folder under `front-end/src/app/<route>/`. Set its flag to `false` to just hide it.
@@ -101,7 +144,7 @@ The session is stored in `localStorage` under `auth_token`, `auth_role`, `auth_e
 ```
 front-end/
 ├── src/
-│   ├── app/                  # Next.js app router (5 static routes)
+│   ├── app/                  # Next.js app router (4 feature routes + _not-found)
 │   ├── components/
 │   │   ├── Three/            # Procedural 3D city engine (Three.js / R3F)
 │   │   └── UI/               # Navbar, AuthSection, chatbot, dashboards, modals
@@ -130,7 +173,11 @@ front-end/
 ## Verification
 
 ```bash
-cd front-end && npm run build     # all 5 routes prerender statically
+cd front-end
+npm run lint        # eslint — exits 0 (warnings allowed)
+npx tsc --noEmit    # type-check
+npm test            # vitest unit suite
+npm run build       # all routes prerender statically
 ```
 
 Config is build-time data — keep `src/config/site.ts` pure (no browser APIs at module scope) or static generation breaks.

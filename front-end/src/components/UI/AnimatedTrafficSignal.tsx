@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 export default function AnimatedTrafficSignal() {
     const [activeLight, setActiveLight] = useState<"red" | "yellow" | "green">("green");
+    const reduced = useReducedMotion();
 
+    // task 6.8: signal stays on its initial light under reduced motion
     useEffect(() => {
+        if (reduced) return;
         const cycle = () => {
             setActiveLight((current) => {
                 if (current === "green") return "yellow";
@@ -16,7 +19,7 @@ export default function AnimatedTrafficSignal() {
         };
         const interval = setInterval(cycle, 3000); // 3 seconds per light
         return () => clearInterval(interval);
-    }, []);
+    }, [reduced]);
 
     return (
         <div className="relative w-full h-[600px] flex items-center justify-center">

@@ -1,19 +1,24 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Activity, Shield, Car, Camera, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { defaultProfile } from "@/config/city";
 
 export default function CityHUD() {
     const [scannedCount, setScannedCount] = useState(1240);
     const [activeAlerts, setActiveAlerts] = useState(3);
+    const reduced = useReducedMotion();
+    const hud = defaultProfile.uiContent.hud; // profile-driven labels (task 7.1)
 
+    // task 6.8: no ambient counter loop under reduced motion
     useEffect(() => {
+        if (reduced) return;
         const interval = setInterval(() => {
             setScannedCount(prev => prev + Math.floor(Math.random() * 3));
         }, 3000);
         return () => clearInterval(interval);
-    }, []);
+    }, [reduced]);
 
     return (
         <div className="fixed inset-0 pointer-events-none z-10 p-6 flex flex-col justify-between mt-24">
@@ -29,13 +34,13 @@ export default function CityHUD() {
                     className="flex flex-col items-end gap-2"
                 >
                     <div className="glass p-4 rounded-lg text-right min-w-[200px]">
-                        <h2 className="text-[10px] uppercase tracking-widest text-slate-400">Total Scans</h2>
+                        <h2 className="text-[10px] uppercase tracking-widest text-slate-400">{hud.totalScans}</h2>
                         <p className="text-2xl font-mono text-neon-cyan">{scannedCount.toLocaleString()}</p>
                         <div className="w-full bg-slate-800 h-1 mt-2 rounded-full overflow-hidden">
                             <motion.div
                                 className="h-full bg-neon-cyan"
-                                animate={{ width: ["20%", "80%", "45%", "90%"] }}
-                                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                                animate={reduced ? { width: "45%" } : { width: ["20%", "80%", "45%", "90%"] }}
+                                transition={reduced ? { duration: 0 } : { duration: 10, repeat: Infinity, ease: "linear" }}
                             />
                         </div>
                     </div>
@@ -64,7 +69,7 @@ export default function CityHUD() {
                     >
                         <div className="flex items-center gap-2 text-red-500">
                             <AlertTriangle size={18} />
-                            <span className="text-xs font-bold uppercase tracking-widest">Active Violations</span>
+                            <span className="text-xs font-bold uppercase tracking-widest">{hud.activeViolations}</span>
                         </div>
                         <p className="text-3xl font-mono text-white">{activeAlerts}</p>
                     </motion.div>
@@ -79,15 +84,15 @@ export default function CityHUD() {
                     className="glass p-4 rounded-lg flex gap-6"
                 >
                     <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 uppercase">Latency</span>
+                        <span className="text-[10px] text-slate-500 uppercase">{hud.latency}</span>
                         <span className="text-neon-cyan font-mono">14ms</span>
                     </div>
                     <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 uppercase">Detection</span>
+                        <span className="text-[10px] text-slate-500 uppercase">{hud.detection}</span>
                         <span className="text-neon-cyan font-mono">YOLOv8x</span>
                     </div>
                     <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-slate-500 uppercase">Active Cams</span>
+                        <span className="text-[10px] text-slate-500 uppercase">{hud.activeCams}</span>
                         <span className="text-neon-cyan font-mono">156</span>
                     </div>
                 </motion.div>
@@ -99,10 +104,10 @@ export default function CityHUD() {
                 >
                     <div className="flex gap-2 mb-2">
                         <button className="glass px-4 py-2 rounded text-[10px] uppercase tracking-widest hover:bg-neon-cyan hover:text-black transition-all">
-                            Initialize Sweep
+                            {hud.sweepAction}
                         </button>
                         <button className="glass px-4 py-2 rounded text-[10px] uppercase tracking-widest border-neon-cyan/50 hover:border-neon-cyan transition-all">
-                            Log Export
+                            {hud.logExport}
                         </button>
                     </div>
                     <div className="bg-neon-cyan h-0.5 w-64" />

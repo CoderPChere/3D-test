@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/UI/Navbar";
 import AuthSection from "@/components/UI/AuthSection";
 import ProfileModal from "@/components/UI/ProfileModal";
 import { Loader2, Camera, ShieldAlert, Wifi, Activity, CheckCircle, XCircle } from "lucide-react";
 import { site } from "@/config/site";
-import { readSession, clearSession } from "@/lib/auth";
+import { useSession, clearSession } from "@/lib/auth";
 import NotConfigured from "@/components/UI/NotConfigured";
 
 type User = { name: string; email: string; role?: string; token?: string };
@@ -20,20 +20,21 @@ export default function CCTVPage() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isStreamLive, setIsStreamLive] = useState(false);
 
-    // Restore session on mount
-    useEffect(() => {
-        const s = readSession();
-        if (s && s.email) {
-            setUser({ name: s.name || s.email.split("@")[0], email: s.email, role: s.role || "viewer", token: s.token });
-        }
-    }, []);
+    // Session restore from localStorage (external store, read without an effect).
+    // Local `user` covers login/profile-save and takes precedence when present.
+    const session = useSession();
+    const sessionUser: User | null =
+        session && session.email
+            ? { name: session.name || session.email.split("@")[0], email: session.email, role: session.role || "viewer", token: session.token }
+            : null;
+    const activeUser = user ?? sessionUser;
 
     return (
         <main className="relative min-h-screen bg-black overflow-hidden flex flex-col font-mono">
             <div className="absolute inset-0 bg-gradient-to-b from-neon-cyan/5 via-transparent to-neon-purple/5 pointer-events-none z-0" />
 
             <Navbar
-                user={user}
+                user={activeUser}
                 onLoginClick={() => setIsAuthOpen(true)}
                 onProfileClick={() => setIsProfileOpen(true)}
             />
@@ -47,7 +48,7 @@ export default function CCTVPage() {
             <ProfileModal
                 isOpen={isProfileOpen}
                 onClose={() => setIsProfileOpen(false)}
-                user={user}
+                user={activeUser}
                 onSave={(u) => setUser(u)}
                 onLogout={() => {
                     setUser(null);
@@ -57,7 +58,7 @@ export default function CCTVPage() {
             />
 
             <section className="relative flex-1 flex flex-col items-center justify-center px-8 pt-24 pb-12 z-10 w-full max-w-[1400px] mx-auto">
-                {site.features.auth && !user ? (
+                {site.features.auth && !activeUser ? (
                     // --- ACCESS DENIED ---
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}

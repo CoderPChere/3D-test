@@ -80,3 +80,14 @@ canvas {
 /* focus variants — plain CSS classes need explicit rules; Tailwind can't generate variants for them */
 .focus\:glow-cyan-md:focus { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-cyan) 30%, transparent); }
 .focus\:glow-purple-md:focus { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-purple) 30%, transparent); }
+
+/* task 6.8 — reduced motion: stop every CSS animation/transition loop (pulse, spin, infinite) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
