@@ -1,0 +1,692 @@
+# OpenSpec Proposal: Transform CityFluxy into a Modular 3D Simulation Sandbox
+
+## Your Role
+
+Act as a senior software architect and technical product engineer.
+
+You are working on an existing project called **CityFluxy**, a 3D city and mobility visualization application built with Next.js, React, Three.js, React Three Fiber, Drei, Tailwind CSS, and Framer Motion.
+
+---
+
+# 1. Product Vision
+
+Transform CityFluxy from its current scroll-driven 3D city experience into a reusable, interactive simulation workspace.
+
+The application should let users:
+
+- Explore a procedurally generated 3D city.
+- Select and inspect city objects.
+- Build and modify city infrastructure.
+- Create and edit simulation scenarios.
+- Run local traffic simulations.
+- Observe simulation metrics and visualizations.
+- Save and load projects locally.
+- Export and import project data.
+
+The long-term objective is to create a reusable frontend sandbox architecture that can be adapted for different hackathon problem statements, particularly in mobility, smart cities, infrastructure, logistics, environmental monitoring, and related spatial simulation domains.
+
+**Important:** Do not claim that one unchanged application can solve every possible hackathon problem statement. The reusable part should be the simulation workspace, rendering engine, interaction system, state management, persistence, and module architecture. Domain-specific modules and simulation rules will still need to change.
+
+---
+
+# 2. Strict Technical Constraints
+
+The current version must work entirely in the browser.
+
+## Absolutely no backend or connected AI
+
+Do not implement or depend on:
+
+- Backend servers.
+- REST or GraphQL APIs.
+- Database services.
+- Authentication servers.
+- AI model APIs.
+- LLM integrations.
+- Live traffic APIs.
+- External city data services.
+- API keys or environment-based service credentials.
+- Paid or externally hosted infrastructure.
+
+All current functionality must work using local application state, deterministic simulation logic, demo data, and browser storage.
+
+Future integration points may be defined through TypeScript interfaces, but they must remain disconnected.
+
+## Existing technology stack
+
+Preserve the existing stack wherever practical:
+
+- Next.js
+- React
+- TypeScript
+- Three.js
+- React Three Fiber
+- Drei
+- Tailwind CSS
+- Framer Motion
+- GSAP, where justified
+
+Zustand may be proposed for application state management if the existing architecture would benefit from it. It is not currently installed, so account for the dependency explicitly.
+
+Do not introduce large libraries without explaining their necessity.
+
+---
+
+# 3. Existing Codebase Audit
+
+Before proposing changes, inspect the actual repository.
+
+Pay particular attention to:
+
+- `src/app/page.tsx`
+- `src/components/Three/Scene.tsx`
+- `src/components/Three/City.tsx`
+- `src/components/Three/TrafficSystem.tsx`
+- `src/components/Three/CinematicCamera.tsx`
+- Existing UI components and configuration files.
+- Existing project dependencies.
+- Existing OpenSpec configuration, conventions, and change structure.
+
+The existing project contains a scroll-driven experience and components associated with AI detection and surveillance-style functionality.
+
+These should not define the new product direction.
+
+Evaluate which components can be reused, refactored, replaced, or removed from the active application.
+
+Investigate existing technical problems rather than assuming the code works correctly. In particular, examine:
+
+- Global mutable state in simulation components.
+- Random values generated during rendering.
+- Animation and component lifecycle cleanup.
+- Incorrect React hook usage.
+- Simulation state synchronization.
+- Vehicle movement and collision behavior.
+- Performance limitations.
+- Camera controls and scene interaction.
+- Existing hardcoded road layouts.
+
+Do not blindly preserve problematic implementation patterns.
+
+The proposal must describe the existing architecture accurately, based on repository inspection.
+
+---
+
+# 4. Target Application Experience
+
+The application should become a full-screen interactive workspace rather than a traditional landing page.
+
+## Main workspace layout
+
+### A. Top navigation bar
+
+Include:
+
+- CityFluxy branding.
+- Current project name.
+- Current workspace mode.
+- Save project.
+- Load project.
+- Import/export.
+- Settings.
+- Undo and redo indicators.
+
+### B. Left toolbar
+
+Provide tools for:
+
+- Select.
+- Move.
+- Build road.
+- Add building.
+- Add vehicle.
+- Add traffic signal.
+- Add incident.
+- Create zones.
+- Manage visualization layers.
+
+Tools must have actual behavior, not merely visual representations.
+
+### C. Central 3D viewport
+
+The city viewport is the primary interaction surface.
+
+It should support:
+
+- Camera orbit.
+- Pan.
+- Zoom.
+- Object selection.
+- Object highlighting.
+- Ground-plane placement.
+- Object placement and editing.
+- Contextual interactions.
+- Scene layer visibility.
+- Performance-aware rendering.
+
+### D. Right contextual inspector
+
+Display properties based on the selected object.
+
+Examples:
+
+**Road**
+- Name.
+- Length.
+- Number of lanes.
+- Road type.
+- Speed limit.
+- Capacity.
+- Open/closed status.
+
+**Building**
+- Name.
+- Type.
+- Height.
+- Position.
+- Associated zone.
+
+**Vehicle**
+- Vehicle type.
+- Speed.
+- Current route.
+- Status.
+
+**Traffic signal**
+- Signal state.
+- Cycle duration.
+- Timing configuration.
+
+The inspector should support editing applicable properties.
+
+### E. Bottom simulation timeline
+
+Include:
+
+- Play.
+- Pause.
+- Reset.
+- Simulation speed.
+- Simulation time.
+- Current simulation status.
+- Scenario controls.
+
+The timeline must connect to the local simulation engine.
+
+---
+
+# 5. Workspace Modes
+
+Propose a modular mode architecture with four primary modes.
+
+## Explore Mode
+
+- Navigate the 3D environment.
+- Select and inspect objects.
+- Enable or disable visualization layers.
+- View object information.
+
+## Build Mode
+
+- Place roads.
+- Place buildings.
+- Add infrastructure objects.
+- Move and delete objects.
+- Edit object properties.
+- Support undo and redo.
+- Validate basic placement constraints.
+
+## Simulate Mode
+
+- Start and stop the local simulation.
+- Change simulation speed.
+- Spawn vehicles.
+- Simulate traffic signals.
+- Introduce incidents.
+- Close roads.
+- Observe traffic behavior.
+
+## Analyze Mode
+
+- Display local simulation metrics.
+- Show traffic density.
+- Show congestion hotspots.
+- Visualize vehicle distribution.
+- Compare scenarios.
+- Export simulation results.
+
+Avoid implementing all functionality as one giant React component.
+
+---
+
+# 6. Architecture to Propose
+
+Design the application as independent but connected layers.
+
+## A. Rendering layer
+
+Responsible for:
+
+- Three.js scene.
+- Camera.
+- Lighting.
+- City geometry.
+- Roads.
+- Buildings.
+- Vehicles.
+- Infrastructure objects.
+- Visualization layers.
+
+Rendering must remain separate from simulation logic.
+
+## B. Interaction layer
+
+Responsible for:
+
+- Selection.
+- Object placement.
+- Object movement.
+- Object deletion.
+- Editing tools.
+- Keyboard shortcuts.
+- Undo and redo.
+- Contextual inspector behavior.
+
+## C. Simulation engine
+
+Create a standalone TypeScript simulation engine independent of React and Three.js.
+
+It should be responsible for:
+
+- Fixed-timestep simulation.
+- Deterministic random seed.
+- Vehicle spawning.
+- Vehicle movement.
+- Vehicle following behavior.
+- Traffic signals.
+- Road capacity.
+- Congestion and queues.
+- Road closures.
+- Incident handling.
+- Alternative route calculation.
+- Simulation metrics.
+
+The rendering layer should consume simulation output. It should not own the simulation rules.
+
+Avoid updating React state for every vehicle on every animation frame. Propose efficient approaches such as refs, instanced meshes, and batched updates.
+
+## D. State management
+
+Propose a clean separation between:
+
+- Application state.
+- City/project state.
+- Selection and interaction state.
+- Simulation state.
+- Scenario state.
+- Settings state.
+
+Evaluate Zustand for this purpose.
+
+## E. Scenario management
+
+Users should be able to:
+
+- Create scenarios.
+- Rename scenarios.
+- Duplicate scenarios.
+- Add events.
+- Schedule events.
+- Run scenarios.
+- Reset scenarios.
+- Compare scenario results.
+
+Example events:
+
+- Road closure.
+- Traffic accident.
+- Vehicle surge.
+- Signal timing change.
+- Infrastructure modification.
+
+## F. Local persistence
+
+Implement the architecture for:
+
+- Save project locally.
+- Load project locally.
+- Export project as JSON.
+- Import project from JSON.
+- Validate imported project data.
+- Persist basic settings.
+
+Use localStorage for small project data. Consider IndexedDB only if there is a clear need.
+
+## G. Future integration contracts
+
+Propose disconnected TypeScript interfaces for future integration.
+
+For example:
+
+`BackendPort.ts`
+
+- Save project.
+- Load project.
+- List projects.
+- Save scenarios.
+
+`AIProviderPort.ts`
+
+- Generate scenario.
+- Explain simulation.
+- Recommend improvements.
+
+`DataProviderPort.ts`
+
+- Retrieve city data.
+- List available cities.
+
+These are interfaces only. Do not implement network calls, mock AI responses, or provider-specific integrations.
+
+The current application must function without these adapters.
+
+---
+
+# 7. Modular Domain Architecture
+
+Propose a module registry that allows the workspace to enable different domain capabilities.
+
+Potential modules:
+
+- Mobility.
+- Infrastructure.
+- Environment.
+- Public safety.
+- Logistics.
+
+Each module should be able to declare:
+
+- Module ID.
+- Display name.
+- Enabled state.
+- Available tools.
+- Supported object types.
+- Visualization layers.
+- Metrics.
+- Relevant simulation capabilities.
+
+Example conceptual interface:
+
+```ts
+export interface SandboxModule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  tools: string[];
+  objectTypes: string[];
+  visualizationLayers: string[];
+  metrics: string[];
+}
+```
+
+Do not over-engineer a generic plugin framework. Propose only the abstraction needed for the current product and realistic future extensions.
+
+---
+
+# 8. Visual Design Direction
+
+The visual identity should be a hybrid of realistic/stylized 3D city rendering and restrained futuristic UI.
+
+Design characteristics:
+
+- Dark slate and navy interface.
+- Restrained cyan and violet accents.
+- Realistic but performance-conscious city geometry.
+- Clearly visible roads and lanes.
+- Vehicles with distinguishable types.
+- Subtle glass-like panels.
+- Clean typography.
+- Minimal holographic overlays.
+- Clear visual hierarchy.
+- Functional controls with meaningful hover and active states.
+
+Avoid:
+
+- Excessive neon.
+- Decorative controls without behavior.
+- Overloaded HUDs.
+- Unnecessary animations.
+- A landing-page-first layout.
+- Fake AI or live-data indicators.
+
+The result should feel like a professional simulation tool, not a generic futuristic dashboard.
+
+---
+
+# 9. Performance Requirements
+
+The application must remain usable on modest hardware.
+
+The target development environment includes:
+
+- Intel Core i3-7100.
+- 8 GB RAM.
+- NVIDIA GT 710 with 2 GB VRAM.
+
+Propose:
+
+- Instanced vehicle rendering.
+- Merged static geometry.
+- Limited real-time shadows.
+- Low/medium/high quality settings.
+- Adaptive device pixel ratio.
+- Distance-based level of detail.
+- Minimal post-processing.
+- Efficient simulation updates.
+- Controlled entity counts.
+
+Do not prioritize graphical complexity over responsiveness.
+
+Include a performance testing strategy for this hardware class.
+
+---
+
+# 10. Proposed OpenSpec Change Scope
+
+Create an OpenSpec change with a clear name, such as:
+
+`cityfluxy-modular-simulation-sandbox`
+
+Follow the conventions of the OpenSpec version and workflow already installed in the repository.
+
+Inspect existing OpenSpec configuration before creating artifacts. Do not invent a new directory convention if the repository already has one.
+
+The proposal should contain the appropriate OpenSpec artifacts, including:
+
+## Proposal
+
+Explain:
+
+- Why the transformation is needed.
+- What the current product does.
+- What the new product will do.
+- Major architectural changes.
+- User-facing capabilities.
+- Scope boundaries.
+- Explicit non-goals.
+
+## Specs
+
+Create or update capability specifications covering the relevant areas, such as:
+
+1. Workspace shell and navigation.
+2. Interactive 3D viewport.
+3. City object management.
+4. Editing and placement tools.
+5. Local simulation engine.
+6. Scenario management.
+7. Analytics and visualization.
+8. Local persistence and project import/export.
+9. Modular domain configuration.
+10. Performance and quality settings.
+11. Future integration boundaries.
+
+Use clear, testable requirements and scenarios.
+
+Where appropriate, write requirements in a structured Given/When/Then style.
+
+Avoid vague statements such as "the system should be fast" or "the UI should be beautiful." Define observable behavior and measurable acceptance criteria wherever practical.
+
+## Design
+
+Document:
+
+- Proposed system architecture.
+- Component responsibilities.
+- Data flow.
+- State ownership.
+- Simulation lifecycle.
+- Rendering and simulation separation.
+- Persistence strategy.
+- Module registration.
+- Future adapter boundaries.
+- Performance strategy.
+- Migration strategy from the existing codebase.
+
+Include Mermaid diagrams where useful.
+
+## Tasks
+
+Break implementation into small, ordered, verifiable tasks.
+
+Use phases:
+
+**Phase 0 — Audit and preparation**
+- Confirm existing architecture.
+- Identify reusable components.
+- Identify code to replace.
+- Define core types.
+- Establish migration boundaries.
+
+**Phase 1 — Workspace foundation**
+- Workspace layout.
+- Navigation.
+- Toolbar.
+- Inspector.
+- Timeline.
+- State management.
+
+**Phase 2 — Interactive 3D environment**
+- Scene refactoring.
+- Camera controls.
+- City rendering.
+- Object selection.
+- Object placement.
+- Object editing.
+
+**Phase 3 — Local simulation**
+- Simulation clock.
+- Road graph.
+- Vehicle movement.
+- Traffic signals.
+- Incidents.
+- Metrics.
+
+**Phase 4 — Scenario and analysis**
+- Scenario editor.
+- Event scheduling.
+- Scenario comparison.
+- Visualization layers.
+- Analytics panels.
+
+**Phase 5 — Persistence and modularity**
+- Local save/load.
+- JSON import/export.
+- Validation.
+- Module registry.
+- Disconnected integration contracts.
+
+**Phase 6 — Polish and validation**
+- UI refinement.
+- Performance optimization.
+- Error handling.
+- Testing.
+- Documentation.
+- Demo scenario.
+
+Every task should be small enough to implement and verify independently.
+
+---
+
+# 11. Critical Acceptance Criteria
+
+The proposal must define how we will verify the following:
+
+1. The application starts without backend services or API keys.
+2. The primary experience opens directly into the simulation workspace.
+3. The 3D scene is interactive.
+4. Users can select and inspect objects.
+5. Users can place and edit supported city objects.
+6. The simulation can play, pause, and reset.
+7. Simulation behavior is deterministic when using the same seed and inputs.
+8. Scenarios can be created and modified locally.
+9. Metrics are calculated from actual local simulation state, not hardcoded display values.
+10. Projects can be saved and restored locally.
+11. JSON import/export works with validation.
+12. No active UI control is merely decorative.
+13. No connected AI, backend, database, or live-data service is required.
+14. Future integrations remain isolated behind interfaces.
+15. The application has a documented strategy for running on low-end hardware.
+
+---
+
+# 12. Important Engineering Rules
+
+- Inspect before proposing.
+- Do not rewrite the entire project without a migration rationale.
+- Do not introduce unnecessary abstractions.
+- Do not mix simulation logic with React components.
+- Do not make the Three.js scene responsible for application state.
+- Do not use random values that make the same simulation produce unpredictable results.
+- Do not hardcode simulation metrics.
+- Do not create fake AI features.
+- Do not create fake live traffic data indicators.
+- Do not add backend dependencies.
+- Do not sacrifice usability for visual effects.
+- Do not create tasks that are too large to verify.
+- Do not claim functionality exists when it is only proposed.
+
+If a requirement is technically risky, ambiguous, or too large for the initial version, explicitly flag it and recommend a smaller implementation.
+
+---
+
+# 13. Final Instructions
+
+Use the OpenSpec proposal workflow only.
+
+Before producing the proposal:
+
+1. Inspect the repository and current OpenSpec setup.
+2. Understand the existing implementation.
+3. Identify reusable and problematic components.
+4. Check for existing specifications that may overlap.
+5. Determine whether this should be one cohesive change or multiple dependent changes.
+6. Explain the trade-offs of the chosen scope.
+
+Then generate the OpenSpec proposal artifacts.
+
+**Do not implement the proposal. Do not modify application source code. Do not install packages.**
+
+When finished, report:
+
+1. OpenSpec change name and location.
+2. Summary of the proposed transformation.
+3. Files and capabilities covered by the proposal.
+4. Key architectural decisions.
+5. Dependencies and risks.
+6. Requirements that need my approval or clarification.
+7. The exact command or workflow step to review and validate the proposal.
+8. The recommended next step before implementation.
+
+The final output should be a technically grounded, implementation-ready OpenSpec proposal—not a generic product vision document.
+
+For reference of how the city should look like and how all 3D environment should you can check "C:\Users\adkat\Desktop\CityFluxy 2.0\images" for references as here you can find images of those things.

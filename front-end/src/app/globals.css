@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --accent: #0ea5e9;
+  --accent-glow: rgba(14, 165, 233, 0.5);
+  --neon-cyan: #22d3ee;
+  --neon-blue: #3b82f6;
+  --neon-purple: #a855f7;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-blue: var(--neon-blue);
+  --color-neon-purple: var(--neon-purple);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  overflow-x: hidden;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+.glass {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.neon-border {
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.hologram-text {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--neon-cyan) 80%, transparent),
+               0 0 20px color-mix(in srgb, var(--neon-cyan) 40%, transparent);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-cyan);
+}
+
+canvas {
+  touch-action: none;
+}
+
+/* brand glow utilities — color follows palette via --neon-* (set from site config in layout.tsx) */
+.glow-cyan-sm { box-shadow: 0 0 8px var(--neon-cyan); }
+.glow-cyan-md { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-cyan) 30%, transparent); }
+.glow-cyan-lg { box-shadow: 0 0 50px color-mix(in srgb, var(--neon-cyan) 10%, transparent); }
+.glow-purple-md { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-purple) 30%, transparent); }
+.glow-purple-lg { box-shadow: 0 0 40px color-mix(in srgb, var(--neon-purple) 15%, transparent); }
+/* focus variants — plain CSS classes need explicit rules; Tailwind can't generate variants for them */
+.focus\:glow-cyan-md:focus { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-cyan) 30%, transparent); }
+.focus\:glow-purple-md:focus { box-shadow: 0 0 15px color-mix(in srgb, var(--neon-purple) 30%, transparent); }
