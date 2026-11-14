@@ -1,11 +1,13 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useSelectionStore } from "@/lib/state/selectionStore";
 import { useProjectStore } from "@/lib/state/projectStore";
 import { useSimStore } from "@/lib/state/simStore";
 import { roadLength, type Building, type CityObject, type Incident, type Road, type Signal, type Vehicle, type Zone } from "@/lib/model/types";
 import { signalStates } from "@/lib/simulation/signals";
 import { getEngine } from "@/lib/simulation/engineHost";
+import { flipRoadDirection } from "@/lib/model/roadBuilder";
 
 const label = "block text-[10px] uppercase tracking-widest text-slate-500";
 const value = "text-sm text-slate-200";
@@ -22,6 +24,7 @@ export default function Inspector() {
   const object = useProjectStore((s) => (selectedId ? s.project.objects[selectedId] : undefined));
   const project = useProjectStore((s) => s.project);
   const updateObject = useProjectStore((s) => s.updateObject);
+  const deleteObject = useProjectStore((s) => s.deleteObject);
   const simTime = useSimStore((s) => s.simTime);
   const simStatus = useSimStore((s) => s.status);
 
@@ -63,6 +66,17 @@ export default function Inspector() {
         {object.type === "signal" && <SignalFields signal={object} simTime={simTime} patch={patch} />}
         {object.type === "incident" && <IncidentFields incident={object} roadName={project.objects[object.roadId]?.name} patch={patch} />}
         {object.type === "zone" && <ZoneFields zone={object} patch={patch} />}
+      </div>
+
+      <div className="border-t border-white/10 px-4 py-3">
+        <button
+          onClick={() => deleteObject(object.id)}
+          data-testid="delete-object"
+          aria-label="Delete object"
+          className="flex w-full items-center justify-center gap-1.5 rounded border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/20"
+        >
+          <Trash2 size={13} /> Delete
+        </button>
       </div>
     </aside>
   );
@@ -109,6 +123,17 @@ function RoadFields({ road, patch }: { road: Road; patch: (p: Partial<Road>) => 
           className={`rounded px-2 py-0.5 text-xs font-semibold ${road.open ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "bg-red-500/15 text-red-400 border border-red-500/30"}`}
         >
           {road.open ? "Open" : "Closed"}
+        </button>
+      </div>
+      <div className={row}>
+        <span className={label}>Direction</span>
+        <button
+          onClick={() => patch(flipRoadDirection(road))}
+          data-testid="flip-direction"
+          title="Reverse the a→b direction"
+          className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-semibold text-slate-300 hover:bg-white/10"
+        >
+          Flip
         </button>
       </div>
     </>

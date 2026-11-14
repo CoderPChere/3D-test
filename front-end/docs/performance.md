@@ -46,7 +46,7 @@ re-measure of the failing scenario.
 
 From `src/lib/render/quality.ts` — the knobs a remediation round tunes:
 
-| Tier | DPR | Shadows | Detail (window lights) | Vehicle budget |
+| Tier | DPR | Shadows | Detail (window lights, trees) | Vehicle budget |
 |---|---|---|---|---|
 | Low | 0.75 | off | 0 | 20 |
 | Medium | 1 – 1.25 | on | 0.5 | 64 |
@@ -104,7 +104,29 @@ occluded/unfocused, which poisons the sample (≈1 fps, 1000 ms frames). Always 
 first (sample 1 s; if `avgFps < 10`, refocus the window and re-sample) and keep the
 tab foregrounded for the whole run.
 
-## Recorded run — 2026-11-13 (target hardware, executed once)
+## Recorded run — 2026-11-14 (after visual refinement; target hardware)
+
+Environment: the exact target machine above, verified before the run (i3-7100, GT 710,
+8 GB, Chrome 157.0.8103.51); Next.js **dev server**; Playwright automation, foreground
+tab, `devicePixelRatio` 1. Same sampler and 1 s warm-up + 4 s window as documented.
+This run includes the capstone visuals: type-driven footprints/rooftops, instanced
+intersection pads and stop lines, vehicle cabins, and tier-scaled roadside trees.
+
+| # | Scenario | avgFps | avgMs | p95Ms | maxMs | Cap visible | Verdict |
+|---|---|---|---|---|---|---|---|
+| S1 | Explore idle, Medium | 60 | 16.7 | 16.9 | 17.0 | n/a | PASS |
+| S2 | Simulating, Medium | 60 | 16.7 | 16.9 | 17.0 | no | PASS |
+| S3 | Simulating, Low | 60 | 16.7 | 16.9 | 17.0 | yes (20 vehicles = budget) | PASS |
+| S4 | Simulating, High | 60 | 16.7 | 16.9 | 17.0 | no | PASS |
+| S5 | Analyze + simulating, Medium | 60 | 16.7 | 16.9 | 17.0 | no (31 vehicles, 4 trend charts) | PASS |
+
+**Measured values above vs. targets:** all four metrics are at the 60 Hz vsync ceiling
+in every scenario; targets (avg ≥ 30, p95 ≤ 50 ms, max ≤ 500 ms, Low cap at 20) are met
+with headroom. No remediation round was needed, and the visual additions did not add a
+measurable frame cost on the GT 710. S3's live count was read as 20 from the Analyze
+panel; S5 ran with the trend charts mounted.
+
+## Previous recorded run — 2026-11-13 (pre-visual-refinement, target hardware)
 
 Environment: the exact target machine above; Next.js **dev server** (production build is
 expected to be equal or faster); Chrome 157 headful driven by Playwright automation;
@@ -131,7 +153,7 @@ re-measure the failing scenario:
 
 1. **Frame time / FPS** → lower the tier's `dpr` cap (e.g. High `1.5 → 1.25`,
    Medium `1.25 → 1`); DPR is the single largest GPU cost on the GT 710.
-2. **Still failing** → reduce `detail` (window-light density) one step.
+2. **Still failing** → reduce `detail` (window lights and roadside trees) one step.
 3. **Still failing** → set `shadows: false` for that tier (removes the directional
    shadow pass + `ContactShadows` render target).
 4. **Sim-bound (S2/S4 fail, S1 passes)** → lower `vehicleBudget` for that tier

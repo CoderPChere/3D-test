@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { CityProject, CityObject, ObjectId, Scenario } from '../model/types';
 import { generateProject } from '../model/generate';
+import { deleteObjectWithDependents } from '../model/deleteObjects';
+import { useSelectionStore } from './selectionStore';
 
 export const HISTORY_LIMIT = 50;
 
@@ -11,7 +13,8 @@ interface ProjectState {
   setProject: (p: CityProject) => void;
   addObject: (o: CityObject) => void;
   updateObject: (id: ObjectId, patch: Partial<CityObject>) => void;
-  removeObject: (id: ObjectId) => void;
+  /** Delete an object and its dependents as one undoable edit. */
+  deleteObject: (id: ObjectId) => void;
   /** Transform the scenario list (create/rename/duplicate) as one undoable edit. */
   mutateScenarios: (fn: (scenarios: Scenario[]) => Scenario[]) => void;
   undo: () => void;
@@ -57,12 +60,11 @@ export const useProjectStore = create<ProjectState>()((set, get) => {
       next.objects[id] = { ...current, ...patch } as CityObject;
       commit(next);
     },
-    removeObject: (id) => {
-      const next = clone(get().project);
-      if (!next.objects[id]) return;
-      delete next.objects[id];
-      next.order = next.order.filter((oid) => oid !== id);
-      commit(next);
+    deleteObject: (id) => {
+      const result = deleteObjectWithDependents(get().project, id);
+      if (!result.ok) return;
+      commit(result.project);
+      if (useSelectionStore.getState().selectedId === id) useSelectionStore.getState().select(null);
     },
     mutateScenarios: (fn) => {
       const next = clone(get().project);

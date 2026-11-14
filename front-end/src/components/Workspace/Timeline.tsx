@@ -67,6 +67,7 @@ export default function Timeline() {
       const engine = getEngine(project);
       engine.play();
       let lastPublish = 0;
+      let lastSample = 0;
       startDriver(
         (dt) => getEngine(useProjectStore.getState().project).step(dt),
         () => useSimStore.getState().speed,
@@ -76,6 +77,10 @@ export default function Timeline() {
           lastPublish = now;
           const snap = getEngine(useProjectStore.getState().project).getSnapshot();
           useSimStore.getState().publish(snap.time, snap.metrics, snap.spawnCapped);
+          if (now - lastSample >= 500) {
+            lastSample = now;
+            useSimStore.getState().recordSample(snap.time, snap.metrics);
+          }
         },
         (e) => {
           // Step failure: pause the run and tell the user — canvas keeps rendering.

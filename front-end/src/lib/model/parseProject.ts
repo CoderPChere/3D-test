@@ -18,14 +18,9 @@ import {
 } from './types';
 
 /** Validation failure carrying the offending field path for precise UI feedback. */
-export class ProjectParseError extends Error {
-  readonly field: string;
-  constructor(message: string, field: string) {
-    super(message);
-    this.name = 'ProjectParseError';
-    this.field = field;
-  }
-}
+export { ProjectParseError } from './errors';
+import { ProjectParseError } from './errors';
+import { validateReferences } from './integrity';
 
 const fail = (field: string, message: string): never => {
   throw new ProjectParseError(message, field);
@@ -286,5 +281,7 @@ export function parseProject(data: unknown): CityProject {
   const scenarios = asArray(raw.scenarios, 'scenarios').map((s, i) => parseScenario(s, i));
   const settings = parseSettings(raw.settings);
 
-  return { version, seed, objects, order, scenarios, settings };
+  const project: CityProject = { version, seed, objects, order, scenarios, settings };
+  validateReferences(project);
+  return project;
 }

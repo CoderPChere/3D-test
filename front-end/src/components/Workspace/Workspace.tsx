@@ -8,10 +8,15 @@ import Timeline from "./Timeline";
 import SettingsPanel from "./SettingsPanel";
 import ScenarioEvents from "./ScenarioEvents";
 import CompareResults from "./CompareResults";
+import CongestionDistribution from "./CongestionDistribution";
 import LiveMetrics from "./LiveMetrics";
+import MetricCharts from "./MetricCharts";
 import DistributionLegend from "./DistributionLegend";
 import { useAppStore } from "@/lib/state/appStore";
+import { useProjectStore } from "@/lib/state/projectStore";
+import { useSelectionStore } from "@/lib/state/selectionStore";
 import { useSettingsStore } from "@/lib/state/settingsStore";
+import { resolveShortcut } from "@/lib/ui/shortcuts";
 
 export default function Workspace({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -26,6 +31,37 @@ export default function Workspace({ children }: { children: React.ReactNode }) {
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message, setMessage]);
+
+  // One global listener for editing shortcuts; the resolver ignores editable fields.
+  useEffect(() => {
+    const onKeyDown = (ev: KeyboardEvent) => {
+      switch (resolveShortcut(ev)) {
+        case 'delete': {
+          const { selectedId } = useSelectionStore.getState();
+          if (!selectedId) return;
+          ev.preventDefault();
+          useProjectStore.getState().deleteObject(selectedId);
+          return;
+        }
+        case 'undo':
+          ev.preventDefault();
+          useProjectStore.getState().undo();
+          return;
+        case 'redo':
+          ev.preventDefault();
+          useProjectStore.getState().redo();
+          return;
+        case 'cancel':
+          useAppStore.getState().cancelRoadDraft();
+          useAppStore.getState().setTool('select');
+          return;
+        default:
+          return;
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background">
@@ -62,6 +98,12 @@ export default function Workspace({ children }: { children: React.ReactNode }) {
             className="absolute right-0 top-0 z-40 h-full w-[85%] overflow-y-auto border-l border-slate-200 bg-slate-50 p-4 shadow-2xl"
           >
             <LiveMetrics />
+            <div className="mt-3">
+              <MetricCharts />
+            </div>
+            <div className="mt-3">
+              <CongestionDistribution />
+            </div>
             <div className="mt-3">
               <CompareResults />
             </div>

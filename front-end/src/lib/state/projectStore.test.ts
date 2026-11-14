@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useProjectStore } from './projectStore';
+import { useSelectionStore } from './selectionStore';
 import { generateProject } from '../model/generate';
-import type { Building, CityProject } from '../model/types';
+import type { Building, CityProject, Road, Vehicle } from '../model/types';
 
 const building = (id: string, x: number, z: number): Building => ({
   type: 'building',
@@ -17,6 +18,7 @@ const fresh = (): CityProject => generateProject(42);
 
 beforeEach(() => {
   useProjectStore.setState({ project: fresh(), past: [], future: [] });
+  useSelectionStore.setState({ selectedId: null, hoverId: null });
 });
 
 describe('project store undo/redo', () => {
@@ -81,5 +83,59 @@ describe('project store undo/redo', () => {
     expect(s.project.seed).toBe(7);
     expect(s.past.length).toBe(0);
     expect(s.future.length).toBe(0);
+  });
+});
+
+describe('deleteObject', () => {
+  const road = (p: CityProject): Road => Object.values(p.objects).find((o): o is Road => o.type === 'road')!;
+  const vehiclesOn = (p: CityProject, roadId: string): Vehicle[] =>
+    Object.values(p.objects).filter((o): o is Vehicle => o.type === 'vehicle' && o.spawnRoadId === roadId);
+
+  it('deletes a road, its dependents, and clears a matching selection as one undo step', () => {
+    const target = road(useProjectStore.getState().project);
+    const dependentIds = vehiclesOn(useProjectStore.getState().project, target.id).map((v) => v.id);
+    expect(dependentIds.length).toBeGreaterThan(0);
+    useSelectionStore.getState().select(target.id);
+
+    useProjectStore.getState().deleteObject(target.id);
+
+    const s = useProjectStore.getState();
+    expect(s.project.objects[target.id]).toBeUndefined();
+    for (const id of dependentIds) expect(s.project.objects[id]).toBeUndefined();
+    expect(s.past.length).toBe(1);
+    expect(useSelectionStore.getState().selectedId).toBeNull();
+  });
+
+  it('undo restores the object and every dependent; redo removes them again', () => {
+    const target = road(useProjectStore.getState().project);
+    const dependentIds = vehiclesOn(useProjectStore.getState().project, target.id).map((v) => v.id);
+
+    useProjectStore.getState().deleteObject(target.id);
+    useProjectStore.getState().undo();
+
+    let s = useProjectStore.getState();
+    expect(s.project.objects[target.id]).toBeDefined();
+    for (const id of dependentIds) expect(s.project.objects[id]).toBeDefined();
+    expect(s.project.order.length).toBe(Object.keys(s.project.objects).length);
+
+    useProjectStore.getState().redo();
+    s = useProjectStore.getState();
+    expect(s.project.objects[target.id]).toBeUndefined();
+    for (const id of dependentIds) expect(s.project.objects[id]).toBeUndefined();
+  });
+
+  it('keeps an unrelated selection', () => {
+    const target = road(useProjectStore.getState().project);
+    const other = Object.values(useProjectStore.getState().project.objects).find((o) => o.type === 'signal')!.id;
+    expect(other).not.toBe(target.id);
+    useSelectionStore.getState().select(other);
+
+    useProjectStore.getState().deleteObject(target.id);
+    expect(useSelectionStore.getState().selectedId).toBe(other);
+  });
+
+  it('ignores an unknown id without creating history', () => {
+    useProjectStore.getState().deleteObject('nope');
+    expect(useProjectStore.getState().past.length).toBe(0);
   });
 });

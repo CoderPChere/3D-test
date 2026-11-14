@@ -22,6 +22,22 @@ const VEHICLES_PER_ROAD = 4;
 const BUILDING_TYPES: BuildingType[] = ['residential', 'commercial', 'office', 'industrial'];
 const VEHICLE_TYPES: VehicleType[] = ['car', 'car', 'car', 'van', 'bus', 'truck'];
 
+/** Type-driven footprint ranges: [minWidth, widthSpan, minDepth, depthSpan], rounded to 0.5. */
+const FOOTPRINTS: Record<BuildingType, [number, number, number, number]> = {
+  residential: [6.5, 1.5, 6.5, 1.5],
+  commercial: [8, 2, 8, 2],
+  office: [7.5, 1.5, 7.5, 1.5],
+  industrial: [10, 1.5, 6.5, 1],
+};
+const half = (v: number) => Math.round(v * 2) / 2;
+
+/** Stable 0..1 jitter from the object id; keeps footprint variety without new RNG draws. */
+function idJitter(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (Math.imul(h, 31) + id.charCodeAt(i)) | 0;
+  return (Math.abs(h) % 997) / 997;
+}
+
 /**
  * Deterministic city + fleet generation from a seed.
  * Same seed → byte-identical project (stable ids, no Date.now/Math.random).
@@ -39,14 +55,19 @@ export function generateProject(seed: number): CityProject {
   for (let x = -GRID_SIZE / 2; x < GRID_SIZE / 2; x++) {
     for (let z = -GRID_SIZE / 2; z < GRID_SIZE / 2; z++) {
       if (Math.abs(x) % 3 === 0 || Math.abs(z) % 3 === 0) continue;
+      const id = `b_${x}_${z}`;
+      const height = Math.round((10 + rand() * 30) * 10) / 10;
+      const buildingType = BUILDING_TYPES[Math.floor(rand() * BUILDING_TYPES.length)];
+      const [minW, spanW, minD, spanD] = FOOTPRINTS[buildingType];
+      const j = idJitter(id);
       const building: Building = {
         type: 'building',
-        id: `b_${x}_${z}`,
+        id,
         name: `Building ${x},${z}`,
         position: [x * SPACING, z * SPACING],
-        footprint: [8, 8],
-        height: Math.round((10 + rand() * 30) * 10) / 10,
-        buildingType: BUILDING_TYPES[Math.floor(rand() * BUILDING_TYPES.length)],
+        footprint: [half(minW + j * spanW), half(minD + (1 - j) * spanD)],
+        height,
+        buildingType,
       };
       push(building);
     }

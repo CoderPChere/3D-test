@@ -10,6 +10,7 @@ import { useSettingsStore } from "@/lib/state/settingsStore";
 import { useAppStore } from "@/lib/state/appStore";
 import { canPlace, type Bounds } from "@/lib/model/placement";
 import { buildCandidate, movedObject, snapToGrid } from "@/lib/model/placeTools";
+import { buildRoadSegment, snapRoadPoint, validateRoadSegment } from "@/lib/model/roadBuilder";
 import { roadLength } from "@/lib/model/types";
 import { QUALITY } from "@/lib/render/quality";
 import type {
@@ -67,6 +68,8 @@ const BUILDING_COLORS: Record<BuildingType, string> = {
   industrial: "#44403c",
 };
 
+const TREE_COLORS = ["#166534", "#15803d", "#4d7c0f"];
+
 const ZONE_COLORS: Record<Zone["zoneType"], string> = {
   residential: "#3b82f6",
   commercial: "#22d3ee",
@@ -82,6 +85,22 @@ function strHash(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
   return Math.abs(h);
+}
+
+/** Centerline crossing point of two segments, including endpoint touches; null when parallel. */
+function segmentCross(a: Vec2, b: Vec2, c: Vec2, d: Vec2): Vec2 | null {
+  const d1x = b[0] - a[0];
+  const d1z = b[1] - a[1];
+  const d2x = d[0] - c[0];
+  const d2z = d[1] - c[1];
+  const den = d1x * d2z - d1z * d2x;
+  if (Math.abs(den) < 1e-6) return null;
+  const ox = c[0] - a[0];
+  const oz = c[1] - a[1];
+  const t = (ox * d2z - oz * d2x) / den;
+  const u = (ox * d1z - oz * d1x) / den;
+  if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+  return [a[0] + d1x * t, a[1] + d1z * t];
 }
 
 // --- Static sub-scenes (memoized so pointer-move re-renders skip them) ------
@@ -110,12 +129,14 @@ const Roads = memo(function Roads({ roads, handlers }: { roads: Road[]; handlers
   );
 });
 
-/** Lane dashes + streetlights derived from road geometry (no handlers — roads pick underneath). */
+/** Lane dashes, streetlights, intersection pads, and stop lines derived from road geometry. */
 const RoadDetails = memo(function RoadDetails({ roads }: { roads: Road[] }) {
-  const { dashes, poles, lamps } = useMemo(() => {
+  const { dashes, poles, lamps, pads, stops } = useMemo(() => {
     const dashes: { p: [number, number, number]; ry: number }[] = [];
     const poles: { p: [number, number, number] }[] = [];
     const lamps: { p: [number, number, number] }[] = [];
+    const pads: { p: [number, number, number] }[] = [];
+    const stops: { p: [number, number, number]; ry: number }[] = [];
     for (const r of roads) {
       const len = roadLength(r);
       const dx = (r.b[0] - r.a[0]) / len;
@@ -134,7 +155,37 @@ const RoadDetails = memo(function RoadDetails({ roads }: { roads: Road[] }) {
         lamps.push({ p: [lx, 5.6, lz] });
       }
     }
-    return { dashes, poles, lamps };
+
+    // Intersections come straight from road geometry; pads and approach stop
+    // lines are instanced, so adding a road adds detailing with no new draw calls.
+    const seen = new Set<string>();
+    for (let i = 0; i < roads.length; i++) {
+      for (let j = i + 1; j < roads.length; j++) {
+        const pt = segmentCross(roads[i].a, roads[i].b, roads[j].a, roads[j].b);
+        if (!pt) continue;
+        const key = `${Math.round(pt[0] * 10)},${Math.round(pt[1] * 10)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        pads.push({ p: [pt[0], 0.245, pt[1]] });
+        for (const r of [roads[i], roads[j]]) {
+          // No approach bars past a road end (T junctions only get them on the through road).
+          if (
+            Math.hypot(pt[0] - r.a[0], pt[1] - r.a[1]) < 6 ||
+            Math.hypot(pt[0] - r.b[0], pt[1] - r.b[1]) < 6
+          ) {
+            continue;
+          }
+          const len = roadLength(r);
+          const dx = (r.b[0] - r.a[0]) / len;
+          const dz = (r.b[1] - r.a[1]) / len;
+          const ry = Math.atan2(-dz, dx);
+          for (const side of [-1, 1]) {
+            stops.push({ p: [pt[0] + dx * 5.4 * side, 0.255, pt[1] + dz * 5.4 * side], ry });
+          }
+        }
+      }
+    }
+    return { dashes, poles, lamps, pads, stops };
   }, [roads]);
 
   return (
@@ -158,6 +209,74 @@ const RoadDetails = memo(function RoadDetails({ roads }: { roads: Road[] }) {
         <meshBasicMaterial color="#fde68a" toneMapped={false} />
         {lamps.map((p, i) => (
           <Instance key={i} position={p.p} />
+        ))}
+      </Instances>
+      <Instances limit={400}>
+        <boxGeometry args={[9, 0.06, 9]} />
+        <meshStandardMaterial color="#334155" roughness={0.9} />
+        {pads.map((p, i) => (
+          <Instance key={i} position={p.p} />
+        ))}
+      </Instances>
+      <Instances limit={1200}>
+        <boxGeometry args={[0.55, 0.03, 6.4]} />
+        <meshBasicMaterial color="#e2e8f0" />
+        {stops.map((s, i) => (
+          <Instance key={i} position={s.p} rotation={[0, s.ry, 0]} />
+        ))}
+      </Instances>
+    </>
+  );
+});
+
+/** Deterministic roadside trees; density follows the quality tier's `detail` budget. */
+const RoadsideTrees = memo(function RoadsideTrees({
+  buildings,
+  detail,
+}: {
+  buildings: Building[];
+  detail: number;
+}) {
+  const trees = useMemo(() => {
+    if (detail <= 0) return [];
+    const out: { x: number; z: number; s: number; c: string }[] = [];
+    const corners: [number, number][] = [
+      [-1, -1],
+      [1, -1],
+      [-1, 1],
+      [1, 1],
+    ];
+    for (const b of buildings) {
+      const [fw, fd] = b.footprint;
+      corners.forEach(([sx, sz], i) => {
+        const key = `${b.id}t${i}`;
+        // Same seed → same tree set; tier detail keeps a deterministic fraction.
+        if ((strHash(key) % 1000) / 1000 >= detail) return;
+        out.push({
+          x: b.position[0] + sx * (fw / 2 + 1.4),
+          z: b.position[1] + sz * (fd / 2 + 1.4),
+          s: 0.85 + (strHash(key) % 30) / 100,
+          c: TREE_COLORS[strHash(key) % TREE_COLORS.length],
+        });
+      });
+    }
+    return out;
+  }, [buildings, detail]);
+
+  return (
+    <>
+      <Instances limit={600}>
+        <cylinderGeometry args={[0.2, 0.28, 2.4, 5]} />
+        <meshStandardMaterial color="#78350f" roughness={1} />
+        {trees.map((t, i) => (
+          <Instance key={i} position={[t.x, 1.2 * t.s, t.z]} scale={t.s} />
+        ))}
+      </Instances>
+      <Instances limit={600} castShadow>
+        <icosahedronGeometry args={[1.25, 0]} />
+        <meshStandardMaterial roughness={0.95} />
+        {trees.map((t, i) => (
+          <Instance key={i} position={[t.x, 3.2 * t.s, t.z]} scale={t.s} color={t.c} />
         ))}
       </Instances>
     </>
@@ -207,6 +326,32 @@ const Buildings = memo(function Buildings({
     return out;
   }, [buildings, detail]);
 
+  // Type-driven rooftop silhouettes: pitched roofs for houses, cap slabs for
+  // commercial/office, skylight strip for industrial. All instanced (2 draw calls).
+  const roofs = useMemo(() => {
+    const caps: { p: [number, number, number]; s: [number, number, number]; c: string }[] = [];
+    const pitches: { p: [number, number, number]; s: [number, number, number] }[] = [];
+    for (const b of buildings) {
+      const [fw, fd] = b.footprint;
+      const max = Math.max(fw, fd);
+      switch (b.buildingType) {
+        case 'residential':
+          pitches.push({ p: [b.position[0], b.height + 1.1, b.position[1]], s: [max * 0.71, 2.2, max * 0.71] });
+          break;
+        case 'office':
+          caps.push({ p: [b.position[0], b.height + 0.5, b.position[1]], s: [fw * 0.6, 1, fd * 0.6], c: '#1e293b' });
+          break;
+        case 'commercial':
+          caps.push({ p: [b.position[0], b.height + 0.3, b.position[1]], s: [fw * 0.92, 0.6, fd * 0.92], c: '#0c4a6e' });
+          break;
+        case 'industrial':
+          caps.push({ p: [b.position[0], b.height + 0.3, b.position[1]], s: [fw * 0.7, 0.6, fd * 0.28], c: '#57534e' });
+          break;
+      }
+    }
+    return { caps, pitches };
+  }, [buildings]);
+
   return (
     <>
       <Instances limit={500} castShadow receiveShadow>
@@ -228,6 +373,20 @@ const Buildings = memo(function Buildings({
         <meshBasicMaterial side={THREE.DoubleSide} toneMapped={false} />
         {windows.map((w, i) => (
           <Instance key={i} position={w.p} rotation={[0, w.ry, 0]} scale={[1.3, 1.7, 1]} color={w.c} />
+        ))}
+      </Instances>
+      <Instances limit={500} castShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.9} />
+        {roofs.caps.map((r, i) => (
+          <Instance key={i} position={r.p} scale={r.s} color={r.c} />
+        ))}
+      </Instances>
+      <Instances limit={500} castShadow>
+        <coneGeometry args={[1, 1, 4]} />
+        <meshStandardMaterial color="#243b5c" roughness={0.95} />
+        {roofs.pitches.map((r, i) => (
+          <Instance key={i} position={r.p} rotation={[0, Math.PI / 4, 0]} scale={r.s} />
         ))}
       </Instances>
     </>
@@ -389,13 +548,17 @@ function Ghost({ obj, ok }: { obj: CityObject | null; ok: boolean }) {
   const color = ok ? "#22d3ee" : "#f43f5e";
   const mat = <meshBasicMaterial color={color} transparent opacity={0.5} depthWrite={false} toneMapped={false} />;
   switch (obj.type) {
-    case "road":
+    case "road": {
+      const len = roadLength(obj);
+      const dx = (obj.b[0] - obj.a[0]) / (len || 1);
+      const dz = (obj.b[1] - obj.a[1]) / (len || 1);
       return (
-        <mesh position={[obj.position[0], 0.3, obj.position[1]]}>
-          <boxGeometry args={[roadLength(obj), 0.3, 8]} />
+        <mesh position={[obj.position[0], 0.3, obj.position[1]]} rotation={[0, Math.atan2(-dz, dx), 0]}>
+          <boxGeometry args={[len, 0.3, 8]} />
           {mat}
         </mesh>
       );
+    }
     case "building":
       return (
         <mesh position={[obj.position[0], obj.height / 2 + 0.05, obj.position[1]]}>
@@ -441,6 +604,7 @@ export default function City() {
   const layers = useSettingsStore((s) => s.layers);
   const quality = useSettingsStore((s) => s.quality);
   const tool = useAppStore((s) => s.activeTool);
+  const roadDraft = useAppStore((s) => s.roadDraft);
 
   const { roads, roadsMap, buildings, vehicles, signals, zones, incidents } = useMemo(() => {
     const roads: Road[] = [];
@@ -507,12 +671,15 @@ export default function City() {
       }
       const t = useAppStore.getState().activeTool;
       if (!PLACE_TOOLS.has(t)) return;
-      const key: Vec2 = SNAP_TOOLS.has(t)
-        ? snapToGrid(p)
-        : [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10];
+      const key: Vec2 =
+        t === "build-road"
+          ? snapRoadPoint(p, roads)
+          : SNAP_TOOLS.has(t)
+            ? snapToGrid(p)
+            : [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10];
       setCursor((prev) => (prev && prev[0] === key[0] && prev[1] === key[1] ? prev : key));
     },
-    [setDragState],
+    [setDragState, roads],
   );
 
   // Move drag: orbit disabled for its duration; commit validated on pointer-up.
@@ -604,6 +771,26 @@ export default function City() {
     const p = groundPoint(ray);
     if (!p) return;
     const app = useAppStore.getState();
+
+    if (t === "build-road") {
+      const point = snapRoadPoint(p, roads);
+      if (!app.roadDraft) {
+        app.beginRoadDraft(point);
+        return;
+      }
+      const segment = buildRoadSegment(app.roadDraft, point);
+      const res = validateRoadSegment(useProjectStore.getState().project.objects, segment, BOUNDS);
+      if (!res.ok) {
+        app.setMessage(res.reason);
+        return;
+      }
+      useProjectStore.getState().addObject(segment);
+      app.cancelRoadDraft();
+      useSelectionStore.getState().select(segment.id);
+      app.markDirty();
+      return;
+    }
+
     const candidate = buildCandidate(t, p, roadsMap);
     if (!candidate) {
       app.setMessage("Nothing to place here — add a road first");
@@ -618,15 +805,25 @@ export default function City() {
     app.markDirty();
   };
 
-  const ghostBase = useMemo(
-    () => (cursor && PLACE_TOOLS.has(tool) ? buildCandidate(tool, cursor, roadsMap) : null),
-    [cursor, tool, roadsMap],
-  );
+  const ghostBase = useMemo(() => {
+    if (tool === "build-road") {
+      return roadDraft && cursor ? buildRoadSegment(roadDraft, cursor) : null;
+    }
+    return cursor && PLACE_TOOLS.has(tool) ? buildCandidate(tool, cursor, roadsMap) : null;
+  }, [cursor, tool, roadsMap, roadDraft]);
   const ghostObj = drag?.candidate ?? ghostBase;
-  const ghostOk = useMemo(
-    () => (ghostObj ? canPlace(project.objects, ghostObj, BOUNDS).ok : true),
-    [ghostObj, project],
-  );
+  const ghostOk = useMemo(() => {
+    if (!ghostObj) return true;
+    const objects = project.objects;
+    return ghostObj.type === "road"
+      ? validateRoadSegment(objects, ghostObj, BOUNDS).ok
+      : canPlace(objects, ghostObj, BOUNDS).ok;
+  }, [ghostObj, project]);
+
+  // A draft is only meaningful while the road tool is active.
+  useEffect(() => {
+    if (tool !== "build-road") useAppStore.getState().cancelRoadDraft();
+  }, [tool]);
 
   // Cursor affordance + stale hover cleanup when the tool changes.
   useEffect(() => {
@@ -668,6 +865,7 @@ export default function City() {
           <Roads roads={roads} handlers={handlers} />
           <RoadDetails roads={roads} />
           <Buildings buildings={buildings} handlers={handlers} detail={QUALITY[quality].detail} />
+          <RoadsideTrees buildings={buildings} detail={QUALITY[quality].detail} />
           <Zones zones={zones} handlers={handlers} />
           <Incidents incidents={incidents} handlers={handlers} />
         </>
@@ -678,6 +876,12 @@ export default function City() {
 
       <SelectionRing />
       <Ghost obj={ghostObj} ok={ghostOk} />
+      {roadDraft && (
+        <mesh position={[roadDraft[0], 0.35, roadDraft[1]]}>
+          <sphereGeometry args={[0.7, 12, 12]} />
+          <meshBasicMaterial color="#22d3ee" toneMapped={false} />
+        </mesh>
+      )}
     </group>
   );
 }

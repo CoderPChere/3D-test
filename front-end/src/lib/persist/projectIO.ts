@@ -26,11 +26,26 @@ export function saveProject(project: CityProject, projectName: string): void {
 export function loadProject(): ProjectEnvelope | null {
   const raw = localStorage.getItem(PROJECT_KEY);
   if (!raw) return null;
-  const parsed = JSON.parse(raw) as ProjectEnvelope;
-  if (!parsed || typeof parsed !== 'object' || !parsed.project || !parsed.project.objects) {
-    throw new Error('Saved project is invalid');
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error('Saved project is not valid JSON');
   }
-  return parsed;
+  if (!data || typeof data !== 'object') throw new Error('Saved project is invalid');
+  const envelope = data as Partial<ProjectEnvelope>;
+  if (envelope.version !== PROJECT_VERSION) {
+    throw new Error(`Unsupported saved project version ${String(envelope.version)} (expected ${PROJECT_VERSION})`);
+  }
+  if (typeof envelope.savedAt !== 'number' || !Number.isFinite(envelope.savedAt)) {
+    throw new Error('Saved project is invalid: savedAt must be a finite number');
+  }
+  if (typeof envelope.projectName !== 'string') {
+    throw new Error('Saved project is invalid: projectName must be a string');
+  }
+  // Same structural + referential validation as file imports.
+  const project = parseProject(envelope.project);
+  return { version: envelope.version, savedAt: envelope.savedAt, projectName: envelope.projectName, project };
 }
 
 export function exportProject(project: CityProject, projectName: string): void {

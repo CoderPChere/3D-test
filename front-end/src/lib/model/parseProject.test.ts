@@ -3,7 +3,6 @@ import { parseProject, ProjectParseError } from './parseProject';
 import { importProjectFile } from '../persist/projectIO';
 import { generateProject } from './generate';
 import type { CityProject, Incident } from './types';
-
 const valid = (): CityProject => generateProject(42);
 
 /** File stand-in: importProjectFile only calls .text(). */
@@ -20,8 +19,9 @@ describe('parseProject', () => {
 
   it('accepts a full export payload with scenarios', () => {
     const p = valid();
+    const roadId = Object.values(p.objects).find((o) => o.type === 'road')!.id;
     p.scenarios = [
-      { id: 's1', name: 'Rush', events: [{ id: 'e1', type: 'vehicle_surge', at: 2, count: 6, roadId: 'r1' }] },
+      { id: 's1', name: 'Rush', events: [{ id: 'e1', type: 'vehicle_surge', at: 2, count: 6, roadId }] },
     ];
     expect(parseProject(clone(p))).toEqual(p);
   });
@@ -71,6 +71,20 @@ describe('parseProject', () => {
 
   it('rejects non-object input', () => {
     expect(() => parseProject('nope')).toThrowError(/object/i);
+  });
+
+  it('rejects a dangling reference with its field path', () => {
+    const p = valid();
+    const vehicle = Object.values(p.objects).find((o) => o.type === 'vehicle')!;
+    vehicle.spawnRoadId = 'nope';
+    try {
+      parseProject(clone(p));
+      expect.unreachable('should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(ProjectParseError);
+      expect((e as ProjectParseError).field).toBe(`objects.${vehicle.id}.spawnRoadId`);
+      expect((e as Error).message).toMatch(/missing road "nope"/);
+    }
   });
 });
 

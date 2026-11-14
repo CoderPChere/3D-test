@@ -36,6 +36,18 @@ describe('generateProject', () => {
     expect(buildingHeights(generateProject(1))).not.toEqual(buildingHeights(generateProject(2)));
   });
 
+  it('varies footprints by building type and stays grid-safe', () => {
+    const p = generateProject(42);
+    const buildings = Object.values(p.objects).filter((o): o is Building => o.type === 'building');
+    const shapes = new Set(buildings.map((b) => `${b.buildingType}:${b.footprint[0]}x${b.footprint[1]}`));
+    expect(shapes.size).toBeGreaterThan(4);
+    for (const b of buildings) {
+      // Footprints stay inside the 12-unit cells and clear of the 8-wide road corridors.
+      expect(Math.max(...b.footprint)).toBeLessThanOrEqual(11.5);
+      expect(Math.min(...b.footprint)).toBeGreaterThanOrEqual(6.5);
+    }
+  });
+
   it('produces a well-formed project (version, roads, signals, vehicles, consistent order)', () => {
     const p = generateProject(42);
     expect(p.version).toBe(PROJECT_VERSION);
